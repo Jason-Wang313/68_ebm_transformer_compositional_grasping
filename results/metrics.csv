@@ -1,0 +1,9 @@
+variant,split,success_rate,tail_risk
+observed_only_wam,nominal,0.555,0.445
+observed_only_wam,hidden_mode_shift,0.185,0.815
+augmentation_as_data_wam,nominal,0.603,0.397
+augmentation_as_data_wam,hidden_mode_shift,0.198,0.802
+scalar_uncertainty_wam,nominal,0.652,0.348
+scalar_uncertainty_wam,hidden_mode_shift,0.302,0.698
+proposed_branch_mechanism,nominal,0.743,0.257
+proposed_branch_mechanism,hidden_mode_shift,0.562,0.438

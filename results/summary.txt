@@ -1,16 +1,37 @@
-Submission-hardening experiment for paper 68 ebm_transformer_compositional_grasping
-Seven seeds, 600 episodes per seed, strong baselines, ablations, stress sweep, and negative cases.
-observed_only_behavior_clone hidden_mode_shift mean_success=0.4098 ci95=0.0154 tail=0.5902
-observed_only_behavior_clone combined_stress mean_success=0.3198 ci95=0.0148 tail=0.6802
-data_augmentation_wam hidden_mode_shift mean_success=0.4974 ci95=0.0134 tail=0.5026
-data_augmentation_wam combined_stress mean_success=0.4214 ci95=0.0307 tail=0.5786
-scalar_uncertainty_planner hidden_mode_shift mean_success=0.5624 ci95=0.0125 tail=0.4376
-scalar_uncertainty_planner combined_stress mean_success=0.5000 ci95=0.0149 tail=0.5000
-ensemble_disagreement_planner hidden_mode_shift mean_success=0.5914 ci95=0.0166 tail=0.4086
-ensemble_disagreement_planner combined_stress mean_success=0.5462 ci95=0.0090 tail=0.4538
-conformal_risk_filter hidden_mode_shift mean_success=0.6081 ci95=0.0184 tail=0.3919
-conformal_risk_filter combined_stress mean_success=0.5591 ci95=0.0205 tail=0.4409
-proposed_branch_mechanism hidden_mode_shift mean_success=0.6857 ci95=0.0102 tail=0.3143
-proposed_branch_mechanism combined_stress mean_success=0.6548 ci95=0.0137 tail=0.3452
-oracle_branch_upper_bound hidden_mode_shift mean_success=0.7586 ci95=0.0102 tail=0.2414
-oracle_branch_upper_bound combined_stress mean_success=0.7362 ci95=0.0129 tail=0.2638
+Paper 68 real MuJoCo EBM transformer compositional grasping rebuild
+Seeds: [0, 1, 2, 3, 4]; episodes per seed: 10; workers: 4
+Training rows: 720; training success rate: 0.3944; feature dim: 31
+Main rows: 3150; ablation rows: 400; stress rows: 1200
+Terminal decision: KILL_ARCHIVE
+Terminal reason: EBM compositional ranker is matched or beaten by a non-oracle baseline on combined composition shift
+
+Combined-composition-shift main results:
+- random_grasp: success=0.0200 ci95=0.0392 slip=0.1144 drop=0.8000 collision=0.9400 unsafe=0.0000 energy=1.7493 sampled=1.00
+- antipodal_geometry: success=0.0800 ci95=0.0760 slip=0.0944 drop=0.5600 collision=0.8400 unsafe=0.0000 energy=3.1881 sampled=1.00
+- force_closure_score: success=0.1400 ci95=0.0972 slip=0.0857 drop=0.3600 collision=0.7800 unsafe=0.0000 energy=3.5449 sampled=1.00
+- cem_grasp_search: success=0.1000 ci95=0.0840 slip=0.0807 drop=0.3600 collision=0.8200 unsafe=0.0000 energy=3.9600 sampled=1.00
+- mlp_energy_model: success=0.1400 ci95=0.0972 slip=0.0754 drop=0.4000 collision=0.8400 unsafe=0.0000 energy=3.6247 sampled=1.00
+- transformer_policy_ranker: success=0.0600 ci95=0.0665 slip=0.0757 drop=0.4200 collision=0.9000 unsafe=0.0000 energy=2.7368 sampled=1.00
+- ensemble_uncertainty_ranker: success=0.1000 ci95=0.0840 slip=0.0830 drop=0.4400 collision=0.8200 unsafe=0.0000 energy=3.5636 sampled=1.00
+- ebm_transformer_compositional: success=0.0800 ci95=0.0760 slip=0.0848 drop=0.4200 collision=0.8200 unsafe=0.0000 energy=3.5738 sampled=1.00
+- oracle_mujoco_grid: success=0.2000 ci95=0.1120 slip=0.0502 drop=0.1200 collision=0.7400 unsafe=0.0000 energy=4.0677 sampled=6.00
+
+Combined-composition-shift ablations:
+- full_ebm_transformer_compositional: success=0.1800 ci95=0.1076 collision=0.7400 unsafe=0.0000 sampled=1.00
+- monolithic_scalar_energy_only: success=0.0400 ci95=0.0549 collision=0.9200 unsafe=0.0000 sampled=1.00
+- no_collision_energy: success=0.0800 ci95=0.0760 collision=0.9000 unsafe=0.0000 sampled=1.00
+- no_contact_energy: success=0.0800 ci95=0.0760 collision=0.8400 unsafe=0.0000 sampled=1.00
+- no_feasibility_energy: success=0.0600 ci95=0.0665 collision=0.8800 unsafe=0.0000 sampled=1.00
+- no_object_energy: success=0.0800 ci95=0.0760 collision=0.8200 unsafe=0.0000 sampled=1.00
+- no_task_energy: success=0.0800 ci95=0.0760 collision=0.8400 unsafe=0.0000 sampled=1.00
+- no_transformer_context: success=0.1000 ci95=0.0840 collision=0.8400 unsafe=0.0000 sampled=1.00
+
+Pairwise combined-shift comparisons vs ebm_transformer_compositional:
+- random_grasp: diff=0.0600 t=1.0000 p=0.3173
+- antipodal_geometry: diff=0.0000 t=0.0000 p=1.0000
+- force_closure_score: diff=-0.0600 t=-0.5145 p=0.6069
+- cem_grasp_search: diff=-0.0200 t=-0.2722 p=0.7855
+- mlp_energy_model: diff=-0.0600 t=-1.1767 p=0.2393
+- transformer_policy_ranker: diff=0.0200 t=0.3015 p=0.7630
+- ensemble_uncertainty_ranker: diff=-0.0200 t=-0.3015 p=0.7630
+- oracle_mujoco_grid: diff=-0.1200 t=-2.4495 p=0.0143

@@ -1,4 +1,5 @@
-case,expected_behavior,observed_success,lesson
-unmodeled_hardware_damage,planner abstains or requests human inspection,0.18,branch semantics cannot repair missing actuation
-semantic_goal_ambiguity,diagnostic physical probes do not solve language ambiguity,0.31,needs a separate instruction-grounding loop
-adversarial_sensor_dropout,tail-risk objective becomes conservative,0.39,sensor-health modeling is out of scope
+case,expected_behavior,observed_failure_mode,submission_implication
+deformable_object,contact energy should adapt to changing geometry,rigid-body MuJoCo energies cannot represent deformation or post-contact shape change,needs deformable benchmark before claiming general compositional grasping
+occluded_geometry,transformer context should infer hidden geometry from scene cues,candidate features assume known object extent; occlusion can make all rankers overconfident,requires perception uncertainty and real visual input
+adversarial_low_friction_coating,contact energy should penalize slip,"without tactile probing, learned rankers confuse shape-compatible grasps with stable grasps",needs tactile or material sensing for deployment claims
+semantic_task_ambiguity,task energy should choose the correct functional contact,all physical energies can be satisfied while the semantic instruction is wrong,"scope is physical grasp selection, not language grounding"

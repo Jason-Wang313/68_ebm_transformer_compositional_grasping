@@ -1,0 +1,9 @@
+split,baseline,mean_success_diff_vs_ebm,paired_t_approx,normal_approx_p,seeds
+combined_composition_shift,random_grasp,0.0600,1.0000,0.3173,5
+combined_composition_shift,antipodal_geometry,0.0000,0.0000,1.0000,5
+combined_composition_shift,force_closure_score,-0.0600,-0.5145,0.6069,5
+combined_composition_shift,cem_grasp_search,-0.0200,-0.2722,0.7855,5
+combined_composition_shift,mlp_energy_model,-0.0600,-1.1767,0.2393,5
+combined_composition_shift,transformer_policy_ranker,0.0200,0.3015,0.7630,5
+combined_composition_shift,ensemble_uncertainty_ranker,-0.0200,-0.3015,0.7630,5
+combined_composition_shift,oracle_mujoco_grid,-0.1200,-2.4495,0.0143,5

@@ -4,8 +4,8 @@ Decision: KILL_ARCHIVE
 
 ICLR main-conference readiness: NO.
 
-Reason: The strongest locally available evidence is synthetic and template-generated. The paper lacks real-robot or high-fidelity simulator validation, implemented learned baselines, manual full-paper related-work depth, and paper-specific empirical figures. These are not recoverable without new external experiments or a substantially new research project.
+Reason: v4 adds a real MuJoCo parallel-jaw grasping benchmark with rollout-labeled learned baselines, but the evidence is negative. The proposed compositional EBM/Transformer ranker is matched or beaten by force-closure, MLP energy, CEM, and ensemble baselines on the combined composition shift.
 
 Honest terminal action: archive/kill for ICLR main. Do not submit this paper to ICLR main in its current form.
 
-Revival condition: rebuild as a real empirical robotics paper with implemented model, strong real baselines, manual related work, and deployment evidence.
+Revival condition: invent and test a substantially stronger compositional grasp model that clears learned and analytic baselines on public grasp benchmarks or hardware, with manual related-work depth and richer perception/tactile inputs.

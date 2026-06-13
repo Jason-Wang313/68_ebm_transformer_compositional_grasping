@@ -6,14 +6,13 @@ Existing v2 decision: KILL_ARCHIVE
 
 Gate verdict: KILL_ARCHIVE
 
-Evidence digest: 1772e055c44647af
+Evidence digest: 74da5b3fbcab5a75
 
 Fatal blockers:
-- Synthetic-only evidence.
-- Template-generated experiment and writing.
-- No real robot or high-fidelity benchmark.
-- No trained WAM/model checkpoint.
-- No implemented real baselines.
+- Proposed compositional EBM ranker does not beat force-closure or MLP energy baselines on combined composition shift.
+- Pairwise seed comparisons show no reliable advantage over strong analytic or learned non-oracle baselines.
+- Combined clutter/slippery split remains low-success even for the proposed method.
+- No real-robot validation or public benchmark replication.
 - No manual exhaustive related-work synthesis.
 
-The only honest main-conference-safe decision is to archive rather than overclaim.
+Real high-fidelity evidence now exists, but it supports archive rather than submission.

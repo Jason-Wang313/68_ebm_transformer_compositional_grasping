@@ -10,10 +10,11 @@
 
 ## ICLR Main Bar
 - [ ] Real-robot validation.
-- [ ] High-fidelity simulator benchmark.
-- [ ] Implemented learned model.
-- [ ] Implemented real competing baselines.
+- [x] High-fidelity simulator benchmark.
+- [x] Implemented learned model.
+- [x] Implemented real competing baselines.
 - [ ] Manual related-work synthesis.
-- [ ] Paper-specific qualitative figures.
+- [x] Paper-specific empirical figures.
+- [x] Multiple seeds, uncertainty, ablations, stress sweep, pairwise comparisons, negative cases, and rollout-labeled training data.
 
-Decision: fail ICLR main empirical-rigor gate; archive.
+Decision: fail ICLR main empirical-rigor gate for a stronger reason than v3. Real MuJoCo evidence now exists, but it falsifies the mechanism because the compositional EBM ranker is matched or beaten by force-closure and MLP energy baselines on the combined composition shift.

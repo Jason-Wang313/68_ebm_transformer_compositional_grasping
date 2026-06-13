@@ -13,14 +13,13 @@
 - Language-guided Robot Grasping: CLIP-based Referring Grasp Synthesis in Clutter (2023)
 
         ## ICLR Main Response
-        A hostile ICLR reviewer would be correct to reject this as a main-conference submission. The v2 paper has reproducible synthetic evidence and careful limitations, but it does not contain the real robot, high-fidelity simulator, learned model, or manual related-work depth needed for the ICLR main track.
+        A hostile ICLR reviewer would be correct to reject this as a main-conference submission. The v4 rebuild now contains a real MuJoCo grasping benchmark and learned baselines, but the compositional EBM/Transformer ranker is matched or beaten by force-closure and MLP energy baselines on the hardest composition split.
 
         ## Honest Action
-        The paper is marked `KILL_ARCHIVE`. This avoids converting a generated workshop-style idea into an overstated main-conference claim.
+        The paper is marked `KILL_ARCHIVE`. This avoids converting a falsified mechanism into an overstated main-conference claim.
 
         ## What Would Be Needed To Revive
-        - Real robot or high-fidelity benchmark experiments.
-        - Implemented model and baselines, not synthetic probability tables.
+        - A substantially stronger compositional grasp model that clears analytic and learned baselines.
+        - Real robot or public grasp benchmark experiments.
         - Manual full-paper related-work audit.
-        - Paper-specific writing and figures.
-        - Evidence that the core mechanism is learned and useful under deployment shift.
+        - Evidence that the core mechanism is learned and useful under object/task composition shift.

@@ -4,42 +4,160 @@
 \usepackage{hyperref}
 \usepackage{url}
 \usepackage{booktabs}
-\title{EBM Transformer Compositional Grasping: ICLR Main-Conference Gate Archive}
+\usepackage{graphicx}
+
+\title{EBM Transformer Compositional Grasping:\\A MuJoCo Negative Result}
 \author{Anonymous Authors}
+
 \begin{document}
 \maketitle
+
 \begin{abstract}
-This document is not an ICLR main-conference submission. It is the v3 main-conference gate for a generated robotics draft about energy-based transformers for grasping. The original research bet was: Compose grasp energies over objects, contacts, and task constraints without collapsing them into one policy token. After a stricter hostile review, the honest terminal decision is \textbf{KILL/ARCHIVE}. Submission-hardening version: v3.
+This paper records a negative result for an energy-based Transformer mechanism for compositional grasping.
+The hypothesis was that grasp selection should compose separate object, contact, task, collision, and feasibility energies instead of collapsing a scene into one policy token.
+We rebuilt the idea as a MuJoCo parallel-jaw grasping benchmark with rollout-labeled training data, learned rankers, analytic force-closure and CEM baselines, ablations, stress sweeps, and seed-level uncertainty.
+The mechanism fails the submission gate.
+On the combined object/contact/task/clutter shift, the proposed EBM/Transformer ranker reaches 0.080 success, while force-closure and MLP energy baselines reach 0.140.
+Pairwise seed comparisons show no reliable advantage over strong non-oracle baselines.
+We therefore mark this project \textbf{KILL/ARCHIVE} for ICLR main rather than submit an unsupported compositional-grasping claim.
 \end{abstract}
 
-\section{Gate Decision}
-The v2 paper was workshop-only. Under the active ICLR-main standard, that is insufficient. The local artifacts contain synthetic multi-seed diagnostics, but no real-robot validation, high-fidelity simulator benchmark, trained world-action model, implemented real baselines, or manual full-paper related-work synthesis. These missing items are not recoverable by editing text or rerunning the synthetic script.
+\section{Question}
+Transformer-based grasping, open-vocabulary affordance localization, and task-aware grasp planning are crowded areas~\citep{prior1,prior2,prior4}.
+The original research bet here was specific: a grasp should not be represented by a single policy token.
+Instead, grasp ranking should compose object geometry, contact stability, task constraints, clutter/collision risk, and gripper feasibility as separate energy terms.
+That mechanism is appealing because grasp success often fails through one violated factor.
+The empirical question is whether explicit energy composition actually improves closed-loop grasping under held-out object and task compositions.
 
-\section{Fatal ICLR-Main Blockers}
-\begin{itemize}
-\item Evidence is synthetic and generated from a shared batch template.
-\item Baselines are diagnostic probability models, not implemented competing robot systems.
-\item Ablations do not correspond to a trained model checkpoint.
-\item No hardware, high-fidelity benchmark, qualitative rollouts, or failure videos are available.
-\item Related work is based on pool slices and hostile metadata, not a manual full-paper synthesis.
-\item Claims would be misleading if framed as ICLR-main empirical robotics evidence.
-\end{itemize}
+\section{Benchmark}
+We implemented a compact MuJoCo parallel-jaw grasping benchmark.
+Candidate grasps are parameterized by planar center, approach angle, jaw width, closing force, and lift tilt.
+Each candidate is executed by closing two position-controlled capsule fingers around a free object and lifting it.
+The benchmark records lift success, slip, drop, collision with clutter, unsafe force, energy, and task satisfaction.
 
-\section{Hostile Prior-Work Pressure}
-The closest local hostile records include:
-\begin{itemize}
-\item FViT-Grasp: Grasping Objects With Using Fast Vision Transformers (2023)
-\item OVAL-Grasp: Open-Vocabulary Affordance Localization for Task Oriented Grasping (2025)
-\item GAT-Grasp: Gesture-Driven Affordance Transfer for Task-Aware Robotic Grasping (2025)
-\item HMT-Grasp: A Hybrid Mamba-Transformer Approach for Robot Grasping in Cluttered Environments (2024)
-\item FunGrasp: Functional Grasping for Diverse Dexterous Hands (2024)
-\end{itemize}
-These works make generic world models, uncertainty, model-based planning, and robot policy robustness crowded. Without real empirical evidence, the remaining novelty boundary is too weak for ICLR main.
+The seven main splits are seen simple objects, unseen dimensions, unseen shape family, slippery contact, clutter collision, task constraint shift, and combined composition shift.
+Objects include cuboids, cylinders, bars, and asymmetric L/T composites.
+Tasks include lift-only, avoid a forbidden face, grasp a long-side handle, and clutter-safe extraction.
 
-\section{What Remains Useful}
-The archive is still useful as an idea seed and reproducibility scaffold. The synthetic code, stress-test CSVs, reviewer attacks, and novelty-boundary docs can inform a future project. The correct next step is not more paper polishing; it is new evidence: implemented models, real baselines, manual related work, and robot or high-fidelity simulator validation.
+We compare nine methods.
+\texttt{random\_grasp} is a lower bound.
+\texttt{antipodal\_geometry} uses geometric width and centering.
+\texttt{force\_closure\_score} adds friction and squeeze terms.
+\texttt{cem\_grasp\_search} uses a stronger analytic candidate score.
+\texttt{mlp\_energy\_model} is a trained scalar MLP over grasp/object/task features.
+\texttt{transformer\_policy\_ranker} is a small context-aware Transformer ranker trained on MuJoCo rollout labels.
+\texttt{ensemble\_uncertainty\_ranker} penalizes learned disagreement.
+\texttt{ebm\_transformer\_compositional} is the proposed method, composing learned context with object/contact/task/collision/feasibility energies.
+\texttt{oracle\_mujoco\_grid} evaluates six candidate grasps in MuJoCo and is a non-submission upper bound.
 
-\section{Terminal Action}
-Decision: \textbf{KILL/ARCHIVE for ICLR main}. Do not submit this paper to ICLR main in the current form. Revival requires a substantially new empirical project.
+\section{Training and Evaluation}
+The training set contains 720 MuJoCo candidate rollouts with a 0.394 success rate.
+The main evaluation contains 3,150 MuJoCo rollouts: 5 seeds, 10 episodes per seed, 7 splits, and 9 methods.
+The ablation suite adds 400 rollouts and the stress sweep adds 1,200 rollouts.
+All reported success rates are measured by executed MuJoCo grasps, not by the learned model scores.
+
+\begin{table}[t]
+\centering
+\caption{Combined composition-shift results. The proposed method does not clear analytic or learned baselines.}
+\label{tab:combined}
+\begin{tabular}{lcccccc}
+\toprule
+Method & Succ. & 95\% CI & Slip & Drop & Collision & Energy \\
+\midrule
+\texttt{random\_grasp} & 0.020 & 0.039 & 0.114 & 0.800 & 0.940 & 1.749 \\
+\texttt{antipodal\_geometry} & 0.080 & 0.076 & 0.094 & 0.560 & 0.840 & 3.188 \\
+\texttt{force\_closure\_score} & 0.140 & 0.097 & 0.086 & 0.360 & 0.780 & 3.545 \\
+\texttt{cem\_grasp\_search} & 0.100 & 0.084 & 0.081 & 0.360 & 0.820 & 3.960 \\
+\texttt{mlp\_energy\_model} & 0.140 & 0.097 & 0.075 & 0.400 & 0.840 & 3.625 \\
+\texttt{transformer\_policy\_ranker} & 0.060 & 0.067 & 0.076 & 0.420 & 0.900 & 2.737 \\
+\texttt{ensemble\_uncertainty\_ranker} & 0.100 & 0.084 & 0.083 & 0.440 & 0.820 & 3.564 \\
+\texttt{ebm\_transformer\_compositional} & 0.080 & 0.076 & 0.085 & 0.420 & 0.820 & 3.574 \\
+\texttt{oracle\_mujoco\_grid} & 0.200 & 0.112 & 0.050 & 0.120 & 0.740 & 4.068 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{../figures/ebm_grasping_success_by_split.png}
+\caption{MuJoCo grasp success across object, contact, task, and clutter shifts. The EBM/Transformer ranker has no broad advantage.}
+\label{fig:success}
+\end{figure}
+
+Table~\ref{tab:combined} is the central gate.
+On the combined composition shift, the proposed method reaches 0.080 success.
+Force closure and MLP energy both reach 0.140, while the oracle grid reaches 0.200 after evaluating six MuJoCo candidates.
+The oracle result shows that better selection is possible, but the proposed compositional ranker does not recover it.
+Pairwise seed comparisons give no reliable advantage over antipodal geometry, force closure, CEM, MLP energy, transformer ranking, or ensemble uncertainty.
+
+\section{Ablations}
+\begin{table}[t]
+\centering
+\caption{Combined-shift ablations. The full method is better than several removals, but not enough to beat external baselines.}
+\label{tab:ablation}
+\begin{tabular}{lccc}
+\toprule
+Ablation & Success & 95\% CI & Collision \\
+\midrule
+\texttt{full\_ebm\_transformer\_compositional} & 0.180 & 0.108 & 0.740 \\
+\texttt{no\_transformer\_context} & 0.100 & 0.084 & 0.840 \\
+\texttt{no\_collision\_energy} & 0.080 & 0.076 & 0.900 \\
+\texttt{no\_contact\_energy} & 0.080 & 0.076 & 0.840 \\
+\texttt{no\_object\_energy} & 0.080 & 0.076 & 0.820 \\
+\texttt{no\_task\_energy} & 0.080 & 0.076 & 0.840 \\
+\texttt{no\_feasibility\_energy} & 0.060 & 0.067 & 0.880 \\
+\texttt{monolithic\_scalar\_energy\_only} & 0.040 & 0.055 & 0.920 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\linewidth]{../figures/ebm_grasping_ablation_success.png}
+\caption{Ablations on the combined shift. Some energy terms matter internally, but the full method still fails the external baseline gate.}
+\label{fig:ablation}
+\end{figure}
+
+The ablations are mixed.
+The full energy composition is better than the monolithic scalar ablation in this run, which means the energy terms are not meaningless.
+However, this internal signal is not enough for ICLR-main readiness.
+The full mechanism must beat external analytic and learned baselines on the same held-out composition split, and it does not.
+
+\section{Stress and Safety}
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.82\linewidth]{../figures/ebm_grasping_stress_sweep.png}
+\caption{Stress sweep over friction, clutter, aspect ratio, and task constraint strength. The proposed ranker is not a robust frontier.}
+\label{fig:stress}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.82\linewidth]{../figures/ebm_grasping_safety_failures.png}
+\caption{Collision plus unsafe-force failures. The hardest splits are dominated by clutter collisions, not solved by the proposed energy composition.}
+\label{fig:safety}
+\end{figure}
+
+The stress sweep and safety plots explain the failure mode.
+The hardest compositions are cluttered, slippery, and geometrically asymmetric.
+The proposed ranker often chooses geometrically plausible grasps that still collide with clutter or drop during lift.
+Explicit energy terms help describe these factors, but the learned scoring and candidate search are not strong enough to produce a decisive success-safety frontier.
+
+\section{Limitations}
+This is a MuJoCo simulator study rather than hardware or a public grasp benchmark.
+The visual input is abstracted into object and candidate features, not raw RGB-D perception.
+The Transformer ranker is deliberately small to keep the run reproducible on CPU.
+The related-work audit is still based on the local hostile pool rather than a full manual paper-by-paper synthesis.
+Those limitations would support a strong-revise outcome if the mechanism had clearly beaten baselines.
+It did not, so the honest terminal action is archive.
+
+\section{Decision}
+The submission gate required the EBM/Transformer composition to beat force closure, CEM, MLP energy, transformer ranking, ensemble uncertainty, and monolithic-energy ablations under held-out composition.
+It failed that gate.
+The correct decision is \textbf{KILL/ARCHIVE}.
+Future work would need richer perception, tactile/material sensing, larger public grasp benchmarks, and a stronger candidate-search procedure before reviving the idea.
+
+\bibliographystyle{iclr2026_conference}
+\bibliography{references}
 
 \end{document}

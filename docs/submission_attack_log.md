@@ -2,7 +2,11 @@
 
 Paper: 68 ebm_transformer_compositional_grasping
 
-This v3 pass applies the ICLR main-conference bar. The result is an honest archive decision, not a workshop resubmission.
+This v4 pass applies the ICLR main-conference bar. The result is an honest archive decision, not a workshop resubmission.
+
+## 2026-06-15 Continuation Note
+
+The earlier v3 objections about synthetic-only evidence are no longer the active reason for archive. The repository now contains a real MuJoCo parallel-jaw grasping benchmark with 720 training rollouts, 3,150 main rollouts, 400 ablation rollouts, 1,200 stress-sweep rollouts, learned and analytic baselines, pairwise tests, figures, and a rebuilt PDF. The current fatal problem is stronger: the EBM/Transformer ranker is matched or beaten by force closure, CEM, MLP energy, Transformer ranking, and ensemble uncertainty on the combined composition shift. Internal ablations show some energy-term signal, but not enough to clear the external baseline gate. Terminal decision remains `KILL_ARCHIVE`.
 
 ## ICLR Main Gate Round 1
 Attack: No real-robot validation.

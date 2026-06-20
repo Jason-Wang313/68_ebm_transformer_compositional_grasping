@@ -1,2 +1,2 @@
 training_rows,success_rate,mlp_train_accuracy,transformer_train_accuracy,mono_train_accuracy
-720,0.3944,1.0000,0.9111,0.7292
+1152,0.4236,1.0000,0.9071,0.7248

@@ -1,0 +1,169 @@
+{\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{longtable}{llrrrrrr}
+\caption{Full split-level main metrics.}\label{tab:full-metrics}\\
+\toprule
+Split & Method & Episodes & Success & Slip & Drop & Collision & Energy \\
+\midrule
+\endfirsthead
+\toprule
+Split & Method & Episodes & Success & Slip & Drop & Collision & Energy \\
+\midrule
+\endhead
+adversarial\_clutter\_gap & Random & 120 & 0.008 & 0.088 & 0.842 & 0.992 & 1.966 \\
+adversarial\_clutter\_gap & Antipodal & 120 & 0.000 & 0.088 & 0.775 & 0.983 & 2.671 \\
+adversarial\_clutter\_gap & Force closure & 120 & 0.000 & 0.080 & 0.733 & 0.992 & 2.849 \\
+adversarial\_clutter\_gap & Collision-aware FC & 120 & 0.008 & 0.082 & 0.717 & 0.975 & 3.157 \\
+adversarial\_clutter\_gap & CEM analytic & 120 & 0.000 & 0.084 & 0.692 & 0.975 & 3.156 \\
+adversarial\_clutter\_gap & Robust perturb. & 120 & 0.000 & 0.086 & 0.733 & 0.992 & 3.054 \\
+adversarial\_clutter\_gap & MLP energy & 120 & 0.000 & 0.088 & 0.817 & 1.000 & 2.385 \\
+adversarial\_clutter\_gap & HGB energy & 120 & 0.000 & 0.089 & 0.750 & 0.975 & 2.431 \\
+adversarial\_clutter\_gap & Transformer & 120 & 0.000 & 0.085 & 0.800 & 0.992 & 2.071 \\
+adversarial\_clutter\_gap & Ensemble & 120 & 0.000 & 0.095 & 0.775 & 0.992 & 2.653 \\
+adversarial\_clutter\_gap & Calibrated stack & 120 & 0.000 & 0.090 & 0.750 & 0.992 & 2.926 \\
+adversarial\_clutter\_gap & Old EBM & 120 & 0.017 & 0.086 & 0.708 & 0.975 & 3.046 \\
+adversarial\_clutter\_gap & EBM v5 & 120 & 0.008 & 0.088 & 0.742 & 0.983 & 3.060 \\
+adversarial\_clutter\_gap & Oracle grid & 120 & 0.067 & 0.051 & 0.233 & 0.900 & 4.259 \\
+clutter\_collision & Random & 120 & 0.092 & 0.064 & 0.458 & 0.908 & 1.772 \\
+clutter\_collision & Antipodal & 120 & 0.333 & 0.057 & 0.142 & 0.633 & 2.659 \\
+clutter\_collision & Force closure & 120 & 0.333 & 0.056 & 0.208 & 0.650 & 2.636 \\
+clutter\_collision & Collision-aware FC & 120 & 0.358 & 0.060 & 0.158 & 0.600 & 2.653 \\
+clutter\_collision & CEM analytic & 120 & 0.358 & 0.059 & 0.150 & 0.600 & 2.685 \\
+clutter\_collision & Robust perturb. & 120 & 0.350 & 0.061 & 0.158 & 0.608 & 2.652 \\
+clutter\_collision & MLP energy & 120 & 0.492 & 0.045 & 0.158 & 0.500 & 2.314 \\
+clutter\_collision & HGB energy & 120 & 0.442 & 0.049 & 0.133 & 0.542 & 2.396 \\
+clutter\_collision & Transformer & 120 & 0.400 & 0.058 & 0.100 & 0.575 & 2.600 \\
+clutter\_collision & Ensemble & 120 & 0.417 & 0.056 & 0.142 & 0.542 & 2.388 \\
+clutter\_collision & Calibrated stack & 120 & 0.475 & 0.047 & 0.133 & 0.508 & 2.442 \\
+clutter\_collision & Old EBM & 120 & 0.383 & 0.057 & 0.117 & 0.592 & 2.638 \\
+clutter\_collision & EBM v5 & 120 & 0.408 & 0.054 & 0.133 & 0.575 & 2.588 \\
+clutter\_collision & Oracle grid & 120 & 0.875 & 0.035 & 0.000 & 0.117 & 2.604 \\
+combined\_composition\_shift & Random & 120 & 0.008 & 0.084 & 0.650 & 0.983 & 2.218 \\
+combined\_composition\_shift & Antipodal & 120 & 0.050 & 0.093 & 0.400 & 0.867 & 3.642 \\
+combined\_composition\_shift & Force closure & 120 & 0.067 & 0.088 & 0.400 & 0.875 & 3.656 \\
+combined\_composition\_shift & Collision-aware FC & 120 & 0.050 & 0.089 & 0.425 & 0.900 & 3.469 \\
+combined\_composition\_shift & CEM analytic & 120 & 0.042 & 0.089 & 0.383 & 0.900 & 3.719 \\
+combined\_composition\_shift & Robust perturb. & 120 & 0.042 & 0.088 & 0.433 & 0.892 & 3.392 \\
+combined\_composition\_shift & MLP energy & 120 & 0.050 & 0.073 & 0.483 & 0.950 & 2.851 \\
+combined\_composition\_shift & HGB energy & 120 & 0.067 & 0.087 & 0.492 & 0.867 & 3.223 \\
+combined\_composition\_shift & Transformer & 120 & 0.025 & 0.074 & 0.508 & 0.933 & 2.740 \\
+combined\_composition\_shift & Ensemble & 120 & 0.075 & 0.086 & 0.500 & 0.850 & 3.330 \\
+combined\_composition\_shift & Calibrated stack & 120 & 0.075 & 0.080 & 0.367 & 0.858 & 3.579 \\
+combined\_composition\_shift & Old EBM & 120 & 0.050 & 0.089 & 0.408 & 0.875 & 3.663 \\
+combined\_composition\_shift & EBM v5 & 120 & 0.067 & 0.085 & 0.417 & 0.883 & 3.493 \\
+combined\_composition\_shift & Oracle grid & 120 & 0.225 & 0.045 & 0.033 & 0.733 & 4.529 \\
+long\_bar\_high\_aspect & Random & 120 & 0.150 & 0.097 & 0.792 & 0.000 & 1.240 \\
+long\_bar\_high\_aspect & Antipodal & 120 & 0.183 & 0.068 & 0.758 & 0.000 & 0.749 \\
+long\_bar\_high\_aspect & Force closure & 120 & 0.283 & 0.062 & 0.692 & 0.000 & 0.807 \\
+long\_bar\_high\_aspect & Collision-aware FC & 120 & 0.050 & 0.063 & 0.950 & 0.000 & 0.623 \\
+long\_bar\_high\_aspect & CEM analytic & 120 & 0.325 & 0.062 & 0.642 & 0.000 & 0.819 \\
+long\_bar\_high\_aspect & Robust perturb. & 120 & 0.033 & 0.066 & 0.967 & 0.000 & 0.611 \\
+long\_bar\_high\_aspect & MLP energy & 120 & 0.900 & 0.057 & 0.008 & 0.000 & 1.467 \\
+long\_bar\_high\_aspect & HGB energy & 120 & 0.950 & 0.046 & 0.050 & 0.000 & 1.374 \\
+long\_bar\_high\_aspect & Transformer & 120 & 0.858 & 0.057 & 0.017 & 0.000 & 1.566 \\
+long\_bar\_high\_aspect & Ensemble & 120 & 0.958 & 0.050 & 0.042 & 0.000 & 1.378 \\
+long\_bar\_high\_aspect & Calibrated stack & 120 & 0.975 & 0.051 & 0.017 & 0.000 & 1.697 \\
+long\_bar\_high\_aspect & Old EBM & 120 & 0.842 & 0.056 & 0.025 & 0.000 & 1.633 \\
+long\_bar\_high\_aspect & EBM v5 & 120 & 0.883 & 0.055 & 0.050 & 0.000 & 1.692 \\
+long\_bar\_high\_aspect & Oracle grid & 120 & 0.900 & 0.041 & 0.058 & 0.000 & 1.441 \\
+material\_shift\_proxy & Random & 120 & 0.167 & 0.091 & 0.800 & 0.000 & 1.546 \\
+material\_shift\_proxy & Antipodal & 120 & 0.325 & 0.087 & 0.583 & 0.000 & 2.119 \\
+material\_shift\_proxy & Force closure & 120 & 0.250 & 0.080 & 0.675 & 0.000 & 2.020 \\
+material\_shift\_proxy & Collision-aware FC & 120 & 0.308 & 0.075 & 0.633 & 0.000 & 2.088 \\
+material\_shift\_proxy & CEM analytic & 120 & 0.250 & 0.081 & 0.683 & 0.000 & 2.011 \\
+material\_shift\_proxy & Robust perturb. & 120 & 0.242 & 0.078 & 0.725 & 0.000 & 2.029 \\
+material\_shift\_proxy & MLP energy & 120 & 0.467 & 0.072 & 0.483 & 0.000 & 1.906 \\
+material\_shift\_proxy & HGB energy & 120 & 0.825 & 0.059 & 0.125 & 0.000 & 2.007 \\
+material\_shift\_proxy & Transformer & 120 & 0.558 & 0.061 & 0.417 & 0.000 & 2.071 \\
+material\_shift\_proxy & Ensemble & 120 & 0.858 & 0.057 & 0.067 & 0.000 & 2.033 \\
+material\_shift\_proxy & Calibrated stack & 120 & 0.692 & 0.064 & 0.250 & 0.000 & 2.192 \\
+material\_shift\_proxy & Old EBM & 120 & 0.408 & 0.065 & 0.567 & 0.000 & 2.132 \\
+material\_shift\_proxy & EBM v5 & 120 & 0.492 & 0.066 & 0.492 & 0.000 & 2.311 \\
+material\_shift\_proxy & Oracle grid & 120 & 0.683 & 0.055 & 0.242 & 0.000 & 2.480 \\
+seen\_simple & Random & 120 & 0.867 & 0.065 & 0.017 & 0.000 & 2.030 \\
+seen\_simple & Antipodal & 120 & 0.808 & 0.069 & 0.000 & 0.000 & 2.370 \\
+seen\_simple & Force closure & 120 & 0.900 & 0.055 & 0.000 & 0.000 & 2.401 \\
+seen\_simple & Collision-aware FC & 120 & 0.925 & 0.054 & 0.000 & 0.000 & 2.671 \\
+seen\_simple & CEM analytic & 120 & 0.875 & 0.056 & 0.000 & 0.000 & 2.575 \\
+seen\_simple & Robust perturb. & 120 & 0.933 & 0.056 & 0.000 & 0.000 & 2.771 \\
+seen\_simple & MLP energy & 120 & 1.000 & 0.029 & 0.000 & 0.000 & 2.143 \\
+seen\_simple & HGB energy & 120 & 1.000 & 0.034 & 0.000 & 0.000 & 2.481 \\
+seen\_simple & Transformer & 120 & 0.983 & 0.035 & 0.000 & 0.000 & 2.112 \\
+seen\_simple & Ensemble & 120 & 1.000 & 0.041 & 0.000 & 0.000 & 2.529 \\
+seen\_simple & Calibrated stack & 120 & 1.000 & 0.035 & 0.000 & 0.000 & 2.758 \\
+seen\_simple & Old EBM & 120 & 0.983 & 0.046 & 0.000 & 0.000 & 2.592 \\
+seen\_simple & EBM v5 & 120 & 1.000 & 0.041 & 0.000 & 0.000 & 2.753 \\
+seen\_simple & Oracle grid & 120 & 1.000 & 0.015 & 0.000 & 0.000 & 2.565 \\
+slippery\_contact & Random & 120 & 0.417 & 0.087 & 0.525 & 0.000 & 1.746 \\
+slippery\_contact & Antipodal & 120 & 0.375 & 0.092 & 0.508 & 0.000 & 2.082 \\
+slippery\_contact & Force closure & 120 & 0.325 & 0.081 & 0.625 & 0.000 & 1.985 \\
+slippery\_contact & Collision-aware FC & 120 & 0.325 & 0.080 & 0.642 & 0.000 & 2.047 \\
+slippery\_contact & CEM analytic & 120 & 0.308 & 0.082 & 0.633 & 0.000 & 2.027 \\
+slippery\_contact & Robust perturb. & 120 & 0.308 & 0.083 & 0.658 & 0.000 & 2.058 \\
+slippery\_contact & MLP energy & 120 & 0.858 & 0.054 & 0.125 & 0.000 & 1.953 \\
+slippery\_contact & HGB energy & 120 & 0.950 & 0.054 & 0.033 & 0.000 & 2.079 \\
+slippery\_contact & Transformer & 120 & 0.883 & 0.052 & 0.100 & 0.000 & 1.929 \\
+slippery\_contact & Ensemble & 120 & 0.933 & 0.059 & 0.025 & 0.000 & 1.988 \\
+slippery\_contact & Calibrated stack & 120 & 0.942 & 0.052 & 0.058 & 0.000 & 2.097 \\
+slippery\_contact & Old EBM & 120 & 0.683 & 0.059 & 0.275 & 0.000 & 2.102 \\
+slippery\_contact & EBM v5 & 120 & 0.583 & 0.066 & 0.392 & 0.000 & 2.169 \\
+slippery\_contact & Oracle grid & 120 & 0.850 & 0.053 & 0.117 & 0.000 & 2.508 \\
+task\_constraint\_shift & Random & 120 & 0.183 & 0.073 & 0.650 & 0.000 & 1.649 \\
+task\_constraint\_shift & Antipodal & 120 & 0.067 & 0.064 & 0.675 & 0.000 & 2.010 \\
+task\_constraint\_shift & Force closure & 120 & 0.250 & 0.063 & 0.725 & 0.000 & 0.837 \\
+task\_constraint\_shift & Collision-aware FC & 120 & 0.142 & 0.065 & 0.858 & 0.000 & 0.774 \\
+task\_constraint\_shift & CEM analytic & 120 & 0.308 & 0.062 & 0.658 & 0.000 & 0.922 \\
+task\_constraint\_shift & Robust perturb. & 120 & 0.108 & 0.068 & 0.892 & 0.000 & 0.741 \\
+task\_constraint\_shift & MLP energy & 120 & 0.967 & 0.040 & 0.000 & 0.000 & 1.596 \\
+task\_constraint\_shift & HGB energy & 120 & 0.992 & 0.040 & 0.008 & 0.000 & 1.575 \\
+task\_constraint\_shift & Transformer & 120 & 0.933 & 0.045 & 0.000 & 0.000 & 1.707 \\
+task\_constraint\_shift & Ensemble & 120 & 1.000 & 0.047 & 0.000 & 0.000 & 1.625 \\
+task\_constraint\_shift & Calibrated stack & 120 & 1.000 & 0.047 & 0.000 & 0.000 & 1.838 \\
+task\_constraint\_shift & Old EBM & 120 & 0.942 & 0.053 & 0.000 & 0.000 & 1.711 \\
+task\_constraint\_shift & EBM v5 & 120 & 0.992 & 0.049 & 0.000 & 0.000 & 1.751 \\
+task\_constraint\_shift & Oracle grid & 120 & 0.900 & 0.040 & 0.067 & 0.000 & 1.618 \\
+thin\_handle\_shift & Random & 120 & 0.342 & 0.077 & 0.533 & 0.000 & 1.368 \\
+thin\_handle\_shift & Antipodal & 120 & 0.000 & 0.075 & 0.333 & 0.000 & 3.222 \\
+thin\_handle\_shift & Force closure & 120 & 0.892 & 0.053 & 0.008 & 0.000 & 2.031 \\
+thin\_handle\_shift & Collision-aware FC & 120 & 0.900 & 0.052 & 0.000 & 0.000 & 2.145 \\
+thin\_handle\_shift & CEM analytic & 120 & 0.883 & 0.055 & 0.000 & 0.000 & 2.167 \\
+thin\_handle\_shift & Robust perturb. & 120 & 0.867 & 0.056 & 0.000 & 0.000 & 2.197 \\
+thin\_handle\_shift & MLP energy & 120 & 0.975 & 0.044 & 0.000 & 0.000 & 1.834 \\
+thin\_handle\_shift & HGB energy & 120 & 1.000 & 0.044 & 0.000 & 0.000 & 2.036 \\
+thin\_handle\_shift & Transformer & 120 & 0.933 & 0.047 & 0.000 & 0.000 & 2.081 \\
+thin\_handle\_shift & Ensemble & 120 & 0.992 & 0.046 & 0.000 & 0.000 & 2.131 \\
+thin\_handle\_shift & Calibrated stack & 120 & 0.992 & 0.044 & 0.000 & 0.000 & 2.188 \\
+thin\_handle\_shift & Old EBM & 120 & 0.917 & 0.053 & 0.000 & 0.000 & 2.201 \\
+thin\_handle\_shift & EBM v5 & 120 & 0.975 & 0.047 & 0.000 & 0.000 & 2.204 \\
+thin\_handle\_shift & Oracle grid & 120 & 1.000 & 0.020 & 0.000 & 0.000 & 1.627 \\
+unseen\_dimensions & Random & 120 & 0.392 & 0.069 & 0.550 & 0.000 & 1.553 \\
+unseen\_dimensions & Antipodal & 120 & 0.733 & 0.063 & 0.092 & 0.000 & 4.109 \\
+unseen\_dimensions & Force closure & 120 & 0.625 & 0.064 & 0.208 & 0.000 & 3.814 \\
+unseen\_dimensions & Collision-aware FC & 120 & 0.717 & 0.064 & 0.133 & 0.000 & 4.028 \\
+unseen\_dimensions & CEM analytic & 120 & 0.642 & 0.064 & 0.208 & 0.000 & 3.790 \\
+unseen\_dimensions & Robust perturb. & 120 & 0.700 & 0.065 & 0.233 & 0.000 & 3.663 \\
+unseen\_dimensions & MLP energy & 120 & 0.967 & 0.038 & 0.008 & 0.000 & 2.185 \\
+unseen\_dimensions & HGB energy & 120 & 1.000 & 0.043 & 0.000 & 0.000 & 2.075 \\
+unseen\_dimensions & Transformer & 120 & 0.975 & 0.039 & 0.000 & 0.000 & 2.062 \\
+unseen\_dimensions & Ensemble & 120 & 1.000 & 0.046 & 0.000 & 0.000 & 1.944 \\
+unseen\_dimensions & Calibrated stack & 120 & 1.000 & 0.041 & 0.000 & 0.000 & 2.155 \\
+unseen\_dimensions & Old EBM & 120 & 0.900 & 0.049 & 0.025 & 0.000 & 2.420 \\
+unseen\_dimensions & EBM v5 & 120 & 0.967 & 0.039 & 0.017 & 0.000 & 3.094 \\
+unseen\_dimensions & Oracle grid & 120 & 0.983 & 0.025 & 0.008 & 0.000 & 3.103 \\
+unseen\_shape\_family & Random & 120 & 0.392 & 0.067 & 0.067 & 0.000 & 2.534 \\
+unseen\_shape\_family & Antipodal & 120 & 0.367 & 0.059 & 0.000 & 0.000 & 2.995 \\
+unseen\_shape\_family & Force closure & 120 & 0.892 & 0.058 & 0.000 & 0.000 & 3.474 \\
+unseen\_shape\_family & Collision-aware FC & 120 & 0.908 & 0.060 & 0.000 & 0.000 & 3.616 \\
+unseen\_shape\_family & CEM analytic & 120 & 0.925 & 0.059 & 0.000 & 0.000 & 3.611 \\
+unseen\_shape\_family & Robust perturb. & 120 & 0.925 & 0.060 & 0.000 & 0.000 & 3.713 \\
+unseen\_shape\_family & MLP energy & 120 & 0.908 & 0.037 & 0.000 & 0.000 & 3.243 \\
+unseen\_shape\_family & HGB energy & 120 & 0.992 & 0.049 & 0.000 & 0.000 & 3.277 \\
+unseen\_shape\_family & Transformer & 120 & 0.917 & 0.054 & 0.000 & 0.000 & 3.519 \\
+unseen\_shape\_family & Ensemble & 120 & 0.983 & 0.055 & 0.000 & 0.000 & 3.331 \\
+unseen\_shape\_family & Calibrated stack & 120 & 0.983 & 0.048 & 0.000 & 0.000 & 3.551 \\
+unseen\_shape\_family & Old EBM & 120 & 0.900 & 0.057 & 0.000 & 0.000 & 3.605 \\
+unseen\_shape\_family & EBM v5 & 120 & 0.967 & 0.051 & 0.000 & 0.000 & 3.635 \\
+unseen\_shape\_family & Oracle grid & 120 & 1.000 & 0.016 & 0.000 & 0.000 & 2.864 \\
+\bottomrule
+\end{longtable}
+}

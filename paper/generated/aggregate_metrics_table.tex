@@ -1,0 +1,26 @@
+\begin{table}[t]
+\centering
+\caption{Aggregate frozen results across all grasping shifts. Success is higher-is-better; drop, collision, unsafe force, and energy are lower-is-better.}
+\label{tab:aggregate-main}
+\scriptsize
+\begin{tabular}{lrrrrrrr}
+\toprule
+Method & Episodes & Success & Slip & Drop & Collision & Unsafe & Energy \\
+\midrule
+Random & 1320 & 0.274 & 0.078 & 0.535 & 0.262 & 0.000 & 1.784 \\
+Antipodal & 1320 & 0.295 & 0.074 & 0.388 & 0.226 & 0.000 & 2.603 \\
+Force closure & 1320 & 0.438 & 0.067 & 0.389 & 0.229 & 0.000 & 2.410 \\
+Collision-aware FC & 1320 & 0.426 & 0.068 & 0.411 & 0.225 & 0.000 & 2.479 \\
+CEM analytic & 1320 & 0.447 & 0.068 & 0.368 & 0.225 & 0.000 & 2.498 \\
+Robust perturb. & 1320 & 0.410 & 0.070 & 0.436 & 0.227 & 0.000 & 2.444 \\
+MLP energy & 1320 & 0.689 & 0.053 & 0.189 & 0.223 & 0.000 & 2.171 \\
+HGB energy & 1320 & 0.747 & 0.054 & 0.145 & 0.217 & 0.000 & 2.268 \\
+Transformer & 1320 & 0.679 & 0.055 & 0.176 & 0.227 & 0.000 & 2.223 \\
+Ensemble & 1320 & 0.747 & 0.058 & 0.141 & 0.217 & 0.000 & 2.303 \\
+Calibrated stack & 1320 & 0.739 & 0.054 & 0.143 & 0.214 & 0.000 & 2.493 \\
+Old EBM & 1320 & 0.639 & 0.061 & 0.193 & 0.222 & 0.000 & 2.522 \\
+EBM v5 & 1320 & 0.667 & 0.058 & 0.204 & 0.222 & 0.000 & 2.614 \\
+Oracle grid & 1320 & 0.771 & 0.036 & 0.069 & 0.159 & 0.000 & 2.691 \\
+\bottomrule
+\end{tabular}
+\end{table}

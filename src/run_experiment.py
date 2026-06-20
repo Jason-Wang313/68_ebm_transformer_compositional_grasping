@@ -1,3 +1,4 @@
+import argparse
 import csv
 import math
 import os
@@ -19,15 +20,16 @@ from sklearn.preprocessing import StandardScaler
 
 
 BASE_SEED = 2950720452
-SEEDS = [0, 1, 2, 3, 4]
-EPISODES_PER_SEED = 10
-ABLATION_EPISODES_PER_SEED = 10
-STRESS_EPISODES_PER_SEED = 8
-TRAIN_SCENES = 72
-TRAIN_CANDIDATES = 10
-MAIN_CANDIDATES = 18
-ORACLE_CANDIDATES = 6
+SEEDS = list(range(8))
+EPISODES_PER_SEED = 18
+ABLATION_EPISODES_PER_SEED = 18
+STRESS_EPISODES_PER_SEED = 12
+TRAIN_SCENES = 96
+TRAIN_CANDIDATES = 12
+MAIN_CANDIDATES = 22
+ORACLE_CANDIDATES = 7
 MAX_WORKERS = max(1, min(4, int(os.environ.get("PAPER68_WORKERS", "4"))))
+PROPOSED_METHOD = "ebm_transformer_compositional_v5"
 
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "results"
@@ -43,22 +45,32 @@ METHODS = [
     "random_grasp",
     "antipodal_geometry",
     "force_closure_score",
+    "collision_aware_force_closure",
     "cem_grasp_search",
+    "robust_perturbation_ranker",
     "mlp_energy_model",
+    "gradient_boosted_energy_model",
     "transformer_policy_ranker",
     "ensemble_uncertainty_ranker",
+    "calibrated_stacked_ranker",
     "ebm_transformer_compositional",
+    "ebm_transformer_compositional_v5",
     "oracle_mujoco_grid",
 ]
 
 ABLATIONS = [
-    "full_ebm_transformer_compositional",
+    "full_ebm_transformer_compositional_v5",
     "no_object_energy",
     "no_contact_energy",
     "no_task_energy",
     "no_collision_energy",
     "no_feasibility_energy",
     "no_transformer_context",
+    "no_robust_perturbation",
+    "no_calibrated_stack",
+    "no_cem_fallback",
+    "no_hard_collision_filter",
+    "old_v4_compositional",
     "monolithic_scalar_energy_only",
 ]
 
@@ -70,6 +82,10 @@ MAIN_SPLITS = [
     "clutter_collision",
     "task_constraint_shift",
     "combined_composition_shift",
+    "long_bar_high_aspect",
+    "thin_handle_shift",
+    "adversarial_clutter_gap",
+    "material_shift_proxy",
 ]
 
 
@@ -167,6 +183,10 @@ def scenario_config(split: str, seed: int, episode: int, rng: np.random.Generato
         "clutter_collision": ("box", 0.058, 0.042, 0.035, 0.045, 0.76, 0.16, "clutter_safe", make_clutter(0.075, rng)),
         "task_constraint_shift": ("bar", 0.115, 0.024, 0.032, 0.045, 0.72, 0.16, "avoid_face", []),
         "combined_composition_shift": ("t_shape", 0.105, 0.034, 0.033, 0.045, 0.38, 0.22, "clutter_safe", make_clutter(0.065, rng)),
+        "long_bar_high_aspect": ("bar", 0.145, 0.018, 0.030, 0.045, 0.64, 0.18, "avoid_face", []),
+        "thin_handle_shift": ("l_shape", 0.088, 0.019, 0.031, 0.045, 0.58, 0.17, "handle_long_side", []),
+        "adversarial_clutter_gap": ("t_shape", 0.110, 0.030, 0.033, 0.045, 0.46, 0.21, "clutter_safe", make_clutter(0.048, rng)),
+        "material_shift_proxy": ("cylinder", 0.058, 0.058, 0.038, 0.052, 0.24, 0.20, "lift", []),
     }[split]
     shape, hx, hy, hz, radius, friction, mass, task, clutter = base
     return {
@@ -183,7 +203,7 @@ def scenario_config(split: str, seed: int, episode: int, rng: np.random.Generato
         "forbidden_angle": rng.uniform(-0.30, 0.30),
         "desired_angle": rng.uniform(-0.60, 0.60),
         "clutter": clutter,
-        "sensor_noise": 0.006 if split != "combined_composition_shift" else 0.011,
+        "sensor_noise": 0.013 if split in {"combined_composition_shift", "adversarial_clutter_gap", "material_shift_proxy"} else 0.006,
     }
 
 
@@ -339,9 +359,14 @@ def generate_candidates(scenario: dict, rng: np.random.Generator, n: int) -> lis
     base_angles = [
         scenario["yaw"],
         scenario["yaw"] + math.pi / 2,
+        scenario["yaw"] - math.pi / 2,
         scenario["desired_angle"],
+        scenario["desired_angle"] + math.pi / 2,
         scenario["forbidden_angle"] + math.pi / 2,
+        scenario["forbidden_angle"] - math.pi / 2,
     ]
+    if scenario["task"] == "handle_long_side":
+        base_angles.extend([scenario["yaw"] + math.pi / 2, scenario["yaw"] - math.pi / 2])
     while len(candidates) < n:
         if len(candidates) < len(base_angles):
             angle = base_angles[len(candidates)] + rng.normal(0.0, 0.10)
@@ -351,6 +376,9 @@ def generate_candidates(scenario: dict, rng: np.random.Generator, n: int) -> lis
         center = rng.normal(0.0, scenario["sensor_noise"], size=2)
         if len(candidates) % 5 == 0:
             center += rng.normal(0.0, 0.018, size=2)
+        if scenario["clutter"] and len(candidates) % 4 == 1:
+            nearest = min(scenario["clutter"], key=lambda c: abs(c[1]))
+            center[1] -= math.copysign(0.018, nearest[1])
         candidates.append(
             {
                 "center_x": float(center[0]),
@@ -546,8 +574,39 @@ def analytic_components(scenario: dict, candidate: dict) -> dict:
     }
 
 
+def robust_perturbation_energy(scenario: dict, candidate: dict) -> float:
+    """Analytic worst-case risk under small state and action perturbations."""
+    offsets = [
+        (0.0, 0.0, 0.0, 1.0),
+        (0.010, 0.000, 0.08, 1.0),
+        (-0.010, 0.000, -0.08, 1.0),
+        (0.000, 0.010, 0.06, 0.92),
+        (0.000, -0.010, -0.06, 1.08),
+    ]
+    worst = 0.0
+    for dx, dy, da, width_scale in offsets:
+        perturbed = dict(candidate)
+        perturbed["center_x"] = float(candidate["center_x"] + dx)
+        perturbed["center_y"] = float(candidate["center_y"] + dy)
+        perturbed["angle"] = float(candidate["angle"] + da)
+        perturbed["jaw_width"] = float(clamp(candidate["jaw_width"] * width_scale, 0.028, 0.180))
+        shifted_scenario = dict(scenario)
+        shifted_scenario["friction"] = max(0.18, float(scenario["friction"]) - 0.06)
+        comps = analytic_components(shifted_scenario, perturbed)
+        risk = (
+            0.45 * comps["object_energy"]
+            + 0.80 * comps["contact_energy"]
+            + 0.65 * comps["task_energy"]
+            + 1.10 * comps["collision_energy"]
+            + 0.45 * comps["feasibility_energy"]
+        )
+        worst = max(worst, risk)
+    return float(worst)
+
+
 def feature_vector(scenario: dict, candidate: dict) -> np.ndarray:
     comps = analytic_components(scenario, candidate)
+    robust = robust_perturbation_energy(scenario, candidate)
     shape_ids = {
         "box": [1, 0, 0, 0],
         "cylinder": [0, 1, 0, 0],
@@ -589,6 +648,7 @@ def feature_vector(scenario: dict, candidate: dict) -> np.ndarray:
             comps["task_energy"],
             comps["collision_energy"],
             comps["feasibility_energy"],
+            robust,
         ],
         dtype=np.float32,
     )
@@ -732,7 +792,7 @@ def train_models(X: np.ndarray, y: np.ndarray, scene_ids: np.ndarray) -> dict:
         rf.fit(Xs, y)
         rf_models.append(rf)
     mono = LogisticRegression(max_iter=500, class_weight=class_weight, random_state=22)
-    mono.fit(Xs[:, -5:], y)
+    mono.fit(Xs[:, -6:], y)
     hgb = HistGradientBoostingClassifier(max_iter=110, max_leaf_nodes=15, learning_rate=0.06, random_state=33)
     hgb.fit(Xs, y)
 
@@ -770,7 +830,7 @@ def train_models(X: np.ndarray, y: np.ndarray, scene_ids: np.ndarray) -> dict:
                 "success_rate": f"{float(y.mean()):.4f}",
                 "mlp_train_accuracy": f"{float(mlp.score(Xs, y)):.4f}",
                 "transformer_train_accuracy": f"{torch_acc:.4f}",
-                "mono_train_accuracy": f"{float(mono.score(Xs[:, -5:], y)):.4f}",
+                "mono_train_accuracy": f"{float(mono.score(Xs[:, -6:], y)):.4f}",
             }
         ],
     )
@@ -794,7 +854,7 @@ def learned_scores(models: dict, X: np.ndarray, model_name: str) -> np.ndarray:
         probs = np.stack([m.predict_proba(Xs)[:, 1] for m in models["ensemble"]], axis=0)
         return probs.mean(axis=0) - 0.35 * probs.std(axis=0)
     if model_name == "mono":
-        return models["mono"].predict_proba(Xs[:, -5:])[:, 1]
+        return models["mono"].predict_proba(Xs[:, -6:])[:, 1]
     return models["hgb"].predict_proba(Xs)[:, 1]
 
 
@@ -804,6 +864,24 @@ def analytic_score(scenario: dict, candidate: dict, kind: str) -> float:
         return -(1.20 * comps["object_energy"] + 0.20 * comps["feasibility_energy"] + 0.20 * comps["collision_energy"])
     if kind == "force_closure_score":
         return -(0.75 * comps["object_energy"] + 1.35 * comps["contact_energy"] + 0.25 * comps["task_energy"] + 0.15 * comps["feasibility_energy"])
+    if kind == "collision_aware_force_closure":
+        return -(
+            0.70 * comps["object_energy"]
+            + 1.20 * comps["contact_energy"]
+            + 0.45 * comps["task_energy"]
+            + 1.25 * comps["collision_energy"]
+            + 0.25 * comps["feasibility_energy"]
+            + 0.35 * robust_perturbation_energy(scenario, candidate)
+        )
+    if kind == "robust_perturbation_ranker":
+        return -(
+            0.55 * comps["object_energy"]
+            + 0.95 * comps["contact_energy"]
+            + 0.60 * comps["task_energy"]
+            + 0.85 * comps["collision_energy"]
+            + 0.25 * comps["feasibility_energy"]
+            + 0.95 * robust_perturbation_energy(scenario, candidate)
+        )
     if kind == "cem_grasp_search":
         return -(0.65 * comps["object_energy"] + 1.00 * comps["contact_energy"] + 0.75 * comps["task_energy"] + 0.60 * comps["collision_energy"] + 0.25 * comps["feasibility_energy"])
     return -sum(comps.values())
@@ -838,18 +916,86 @@ def ebm_score(scenario: dict, candidate: dict, transformer_prob: float, ablation
     return 1.15 * context - energy
 
 
+def ebm_v5_score(
+    scenario: dict,
+    candidate: dict,
+    transformer_prob: float,
+    mlp_prob: float,
+    hgb_prob: float,
+    ensemble_prob: float,
+    mono_prob: float,
+    ablation: str | None = None,
+) -> float:
+    if ablation == "old_v4_compositional":
+        return ebm_score(scenario, candidate, transformer_prob, None, mono_prob)
+    comps = analytic_components(scenario, candidate)
+    robust = robust_perturbation_energy(scenario, candidate)
+    weights = {
+        "object_energy": 0.52,
+        "contact_energy": 1.05,
+        "task_energy": 0.85,
+        "collision_energy": 1.15,
+        "feasibility_energy": 0.50,
+        "robust_energy": 0.72,
+    }
+    if ablation == "no_object_energy":
+        weights["object_energy"] = 0.0
+    if ablation == "no_contact_energy":
+        weights["contact_energy"] = 0.0
+    if ablation == "no_task_energy":
+        weights["task_energy"] = 0.0
+    if ablation == "no_collision_energy":
+        weights["collision_energy"] = 0.0
+    if ablation == "no_feasibility_energy":
+        weights["feasibility_energy"] = 0.0
+    if ablation == "no_robust_perturbation":
+        weights["robust_energy"] = 0.0
+    energy = (
+        weights["object_energy"] * comps["object_energy"]
+        + weights["contact_energy"] * comps["contact_energy"]
+        + weights["task_energy"] * comps["task_energy"]
+        + weights["collision_energy"] * comps["collision_energy"]
+        + weights["feasibility_energy"] * comps["feasibility_energy"]
+        + weights["robust_energy"] * robust
+    )
+    if ablation == "monolithic_scalar_energy_only":
+        context = mono_prob
+        energy = 0.0
+    elif ablation == "no_transformer_context":
+        context = 0.34 * mlp_prob + 0.30 * hgb_prob + 0.28 * ensemble_prob + 0.08 * mono_prob
+    elif ablation == "no_calibrated_stack":
+        context = transformer_prob
+    else:
+        context = 0.30 * transformer_prob + 0.26 * mlp_prob + 0.24 * hgb_prob + 0.14 * ensemble_prob + 0.06 * mono_prob
+    hard_penalty = 0.0
+    if ablation != "no_hard_collision_filter":
+        hard_penalty += 1.6 * max(0.0, comps["collision_energy"] - 0.72)
+        hard_penalty += 0.8 * max(0.0, robust - 1.12)
+    return 1.35 * context - energy - hard_penalty
+
+
 def choose_candidates(method: str, scenario: dict, candidates: list[dict], models: dict, rng: np.random.Generator) -> list[dict]:
     if method == "random_grasp":
         return [candidates[int(rng.integers(0, len(candidates)))]]
     X = np.stack([feature_vector(scenario, c) for c in candidates])
-    if method in {"antipodal_geometry", "force_closure_score", "cem_grasp_search"}:
+    if method in {"antipodal_geometry", "force_closure_score", "collision_aware_force_closure", "cem_grasp_search", "robust_perturbation_ranker"}:
         scores = np.asarray([analytic_score(scenario, c, method) for c in candidates])
     elif method == "mlp_energy_model":
         scores = learned_scores(models, X, "mlp")
+    elif method == "gradient_boosted_energy_model":
+        scores = learned_scores(models, X, "hgb")
     elif method == "transformer_policy_ranker":
         scores = learned_scores(models, X, "transformer")
     elif method == "ensemble_uncertainty_ranker":
         scores = learned_scores(models, X, "ensemble")
+    elif method == "calibrated_stacked_ranker":
+        mlp = learned_scores(models, X, "mlp")
+        hgb = learned_scores(models, X, "hgb")
+        transformer = learned_scores(models, X, "transformer")
+        ensemble = learned_scores(models, X, "ensemble")
+        analytic = np.asarray([analytic_score(scenario, c, "cem_grasp_search") for c in candidates])
+        robust = np.asarray([robust_perturbation_energy(scenario, c) for c in candidates])
+        scores = 0.26 * mlp + 0.24 * hgb + 0.24 * transformer + 0.16 * ensemble + 0.10 * sigmoid(analytic) - 0.18 * robust
     elif method == "oracle_mujoco_grid":
         analytic = np.asarray([analytic_score(scenario, c, "cem_grasp_search") for c in candidates])
         top = np.argsort(analytic)[-ORACLE_CANDIDATES:]
@@ -857,12 +1003,29 @@ def choose_candidates(method: str, scenario: dict, candidates: list[dict], model
     else:
         ablation = None
         if method.startswith("ablation:"):
-            ablation = method.split(":", 1)[1].replace("full_ebm_transformer_compositional", "")
+            ablation = method.split(":", 1)[1].replace("full_ebm_transformer_compositional_v5", "")
             if ablation == "":
                 ablation = None
         tprob = learned_scores(models, X, "transformer")
         mono = learned_scores(models, X, "mono")
-        scores = np.asarray([ebm_score(scenario, c, tprob[idx], ablation, mono[idx]) for idx, c in enumerate(candidates)])
+        if method == "ebm_transformer_compositional":
+            scores = np.asarray([ebm_score(scenario, c, tprob[idx], ablation, mono[idx]) for idx, c in enumerate(candidates)])
+        else:
+            mlp = learned_scores(models, X, "mlp")
+            hgb = learned_scores(models, X, "hgb")
+            ensemble = learned_scores(models, X, "ensemble")
+            scores = np.asarray(
+                [
+                    ebm_v5_score(scenario, c, tprob[idx], mlp[idx], hgb[idx], ensemble[idx], mono[idx], ablation)
+                    for idx, c in enumerate(candidates)
+                ]
+            )
+            if ablation != "no_cem_fallback":
+                primary = int(np.argmax(scores))
+                primary_risk = robust_perturbation_energy(scenario, candidates[primary]) + analytic_components(scenario, candidates[primary])["collision_energy"]
+                if primary_risk > 1.35:
+                    fallback = np.asarray([analytic_score(scenario, c, "robust_perturbation_ranker") for c in candidates])
+                    return [candidates[int(np.argmax(fallback))]]
     return [candidates[int(np.argmax(scores))]]
 
 
@@ -872,10 +1035,11 @@ def make_eval_tasks(methods: list[str], splits: list[str], models: dict, episode
         for split in splits:
             for seed in SEEDS:
                 for episode in range(episodes_per_seed):
-                    rng = np.random.default_rng(BASE_SEED + stable_int(method) + stable_int(split) * 11 + seed * 1009 + episode * 7919)
-                    scenario = scenario_config(split, seed, episode, rng, stress_level=stress_level)
-                    candidates = generate_candidates(scenario, rng, MAIN_CANDIDATES)
-                    chosen = choose_candidates(method, scenario, candidates, models, rng)
+                    env_rng = np.random.default_rng(BASE_SEED + stable_int(split) * 11 + seed * 1009 + episode * 7919)
+                    policy_rng = np.random.default_rng(BASE_SEED + stable_int(method) * 17 + stable_int(split) * 11 + seed * 1009 + episode * 7919)
+                    scenario = scenario_config(split, seed, episode, env_rng, stress_level=stress_level)
+                    candidates = generate_candidates(scenario, env_rng, MAIN_CANDIDATES)
+                    chosen = choose_candidates(method, scenario, candidates, models, policy_rng)
                     tasks.append({"method": method, "split": split if stress_level is None else f"stress_{stress_level:.2f}", "seed": seed, "episode": episode, "scenario": scenario, "candidates": chosen})
     return tasks
 
@@ -918,46 +1082,57 @@ def seed_metrics(rows: list[dict]) -> list[dict]:
     return summarize(rows, ["method", "split", "seed"])
 
 
-def pairwise_stats(seed_rows: list[dict], split: str = "combined_composition_shift") -> list[dict]:
-    proposed = "ebm_transformer_compositional"
+def pairwise_stats(seed_rows: list[dict], splits: list[str] | None = None, proposed: str = PROPOSED_METHOD) -> list[dict]:
+    if splits is None:
+        splits = sorted({r["split"] for r in seed_rows})
     metric_map = {
         (r["method"], r["split"], r["seed"]): float(r["mean_success"])
         for r in seed_rows
-        if r["split"] == split
     }
     rows = []
-    for method in METHODS:
-        if method == proposed:
-            continue
-        diffs = []
-        for seed in SEEDS:
-            p_key = (proposed, split, seed)
-            b_key = (method, split, seed)
-            if p_key in metric_map and b_key in metric_map:
-                diffs.append(metric_map[p_key] - metric_map[b_key])
-        if not diffs:
-            continue
-        mean_diff = float(np.mean(diffs))
-        sd = float(np.std(diffs, ddof=1)) if len(diffs) > 1 else 0.0
-        t_stat = mean_diff / (sd / math.sqrt(len(diffs)) + 1e-9)
-        rows.append(
-            {
-                "split": split,
-                "baseline": method,
-                "mean_success_diff_vs_ebm": f"{mean_diff:.4f}",
-                "paired_t_approx": f"{t_stat:.4f}",
-                "normal_approx_p": f"{normal_p_from_t(t_stat):.4f}",
-                "seeds": len(diffs),
-            }
-        )
+    for split in splits:
+        methods = sorted({r["method"] for r in seed_rows if r["split"] == split})
+        for method in methods:
+            if method == proposed:
+                continue
+            diffs = []
+            for seed in SEEDS:
+                p_key = (proposed, split, seed)
+                b_key = (method, split, seed)
+                if p_key in metric_map and b_key in metric_map:
+                    diffs.append(metric_map[p_key] - metric_map[b_key])
+            if not diffs:
+                continue
+            mean_diff = float(np.mean(diffs))
+            sd = float(np.std(diffs, ddof=1)) if len(diffs) > 1 else 0.0
+            t_stat = mean_diff / (sd / math.sqrt(len(diffs)) + 1e-9)
+            rows.append(
+                {
+                    "split": split,
+                    "baseline": method,
+                    "mean_success_diff_vs_ebm": f"{mean_diff:.4f}",
+                    "paired_t_approx": f"{t_stat:.4f}",
+                    "normal_approx_p": f"{normal_p_from_t(t_stat):.4f}",
+                    "seeds": len(diffs),
+                }
+            )
     return rows
 
 
 def plot_success(metrics: list[dict], path: Path) -> None:
-    selected = ["force_closure_score", "cem_grasp_search", "mlp_energy_model", "transformer_policy_ranker", "ensemble_uncertainty_ranker", "ebm_transformer_compositional", "oracle_mujoco_grid"]
+    selected = [
+        "force_closure_score",
+        "collision_aware_force_closure",
+        "robust_perturbation_ranker",
+        "mlp_energy_model",
+        "gradient_boosted_energy_model",
+        "calibrated_stacked_ranker",
+        "ebm_transformer_compositional_v5",
+        "oracle_mujoco_grid",
+    ]
     x = np.arange(len(MAIN_SPLITS))
-    width = 0.10
-    fig, ax = plt.subplots(figsize=(12, 5))
+    width = 0.085
+    fig, ax = plt.subplots(figsize=(13.5, 5.4))
     for idx, method in enumerate(selected):
         vals = []
         for split in MAIN_SPLITS:
@@ -992,7 +1167,15 @@ def plot_ablation(metrics: list[dict], path: Path) -> None:
 
 
 def plot_stress(stress_metrics: list[dict], path: Path) -> None:
-    selected = ["cem_grasp_search", "mlp_energy_model", "transformer_policy_ranker", "ensemble_uncertainty_ranker", "ebm_transformer_compositional"]
+    selected = [
+        "cem_grasp_search",
+        "robust_perturbation_ranker",
+        "mlp_energy_model",
+        "gradient_boosted_energy_model",
+        "calibrated_stacked_ranker",
+        "ebm_transformer_compositional_v5",
+        "oracle_mujoco_grid",
+    ]
     fig, ax = plt.subplots(figsize=(8.5, 4.8))
     for method in selected:
         xs, ys = [], []
@@ -1013,7 +1196,15 @@ def plot_stress(stress_metrics: list[dict], path: Path) -> None:
 
 
 def plot_safety(metrics: list[dict], path: Path) -> None:
-    selected = ["force_closure_score", "cem_grasp_search", "mlp_energy_model", "transformer_policy_ranker", "ebm_transformer_compositional"]
+    selected = [
+        "force_closure_score",
+        "collision_aware_force_closure",
+        "robust_perturbation_ranker",
+        "mlp_energy_model",
+        "gradient_boosted_energy_model",
+        "calibrated_stacked_ranker",
+        "ebm_transformer_compositional_v5",
+    ]
     x = np.arange(len(MAIN_SPLITS))
     fig, ax = plt.subplots(figsize=(10, 4.8))
     for method in selected:
@@ -1061,7 +1252,50 @@ def make_negative_cases() -> list[dict]:
     ]
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run the Paper 68 MuJoCo compositional grasping evidence suite.")
+    parser.add_argument("--seeds", type=int, default=len(SEEDS), help="Number of deterministic seeds starting at zero.")
+    parser.add_argument("--episodes", type=int, default=EPISODES_PER_SEED, help="Main evaluation episodes per seed.")
+    parser.add_argument("--ablation-episodes", type=int, default=ABLATION_EPISODES_PER_SEED, help="Ablation episodes per seed.")
+    parser.add_argument("--stress-episodes", type=int, default=STRESS_EPISODES_PER_SEED, help="Stress episodes per seed.")
+    parser.add_argument("--train-scenes", type=int, default=TRAIN_SCENES, help="Training scenes.")
+    parser.add_argument("--train-candidates", type=int, default=TRAIN_CANDIDATES, help="Training candidates per scene.")
+    parser.add_argument("--main-candidates", type=int, default=MAIN_CANDIDATES, help="Candidate grasps per evaluation scene.")
+    parser.add_argument("--oracle-candidates", type=int, default=ORACLE_CANDIDATES, help="Top analytic candidates evaluated by the oracle.")
+    parser.add_argument("--splits", nargs="+", default=MAIN_SPLITS, help="Main evaluation splits.")
+    parser.add_argument(
+        "--ablation-splits",
+        nargs="+",
+        default=["combined_composition_shift", "adversarial_clutter_gap", "material_shift_proxy"],
+        help="Splits used for hostile ablations.",
+    )
+    parser.add_argument("--stress-levels", type=float, nargs="+", default=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
+    parser.add_argument("--workers", type=int, default=MAX_WORKERS)
+    parser.add_argument("--results-dir", default=str(RESULTS))
+    parser.add_argument("--figures-dir", default=str(FIGURES))
+    return parser.parse_args()
+
+
 def main() -> None:
+    args = parse_args()
+    global SEEDS, EPISODES_PER_SEED, ABLATION_EPISODES_PER_SEED, STRESS_EPISODES_PER_SEED
+    global TRAIN_SCENES, TRAIN_CANDIDATES, MAIN_CANDIDATES, ORACLE_CANDIDATES
+    global MAIN_SPLITS, MAX_WORKERS, RESULTS, FIGURES
+    SEEDS = list(range(args.seeds))
+    EPISODES_PER_SEED = args.episodes
+    ABLATION_EPISODES_PER_SEED = args.ablation_episodes
+    STRESS_EPISODES_PER_SEED = args.stress_episodes
+    TRAIN_SCENES = args.train_scenes
+    TRAIN_CANDIDATES = args.train_candidates
+    MAIN_CANDIDATES = args.main_candidates
+    ORACLE_CANDIDATES = args.oracle_candidates
+    MAIN_SPLITS = list(args.splits)
+    MAX_WORKERS = max(1, min(8, args.workers))
+    RESULTS = Path(args.results_dir)
+    FIGURES = Path(args.figures_dir)
+    RESULTS.mkdir(parents=True, exist_ok=True)
+    FIGURES.mkdir(parents=True, exist_ok=True)
+
     X, y, scene_ids, train_summary = build_training_data()
     models = train_models(X, y, scene_ids)
 
@@ -1073,21 +1307,35 @@ def main() -> None:
     metrics = summarize(raw_rows, ["method", "split"])
     write_csv(RESULTS / "ebm_grasping_metrics.csv", metrics)
     write_csv(RESULTS / "metrics.csv", metrics)
-    pairwise = pairwise_stats(seed_rows)
+    aggregate_metrics = summarize(raw_rows, ["method"])
+    write_csv(RESULTS / "aggregate_metrics.csv", aggregate_metrics)
+    pairwise = pairwise_stats(seed_rows, MAIN_SPLITS, PROPOSED_METHOD)
     write_csv(RESULTS / "ebm_grasping_pairwise.csv", pairwise)
     write_csv(RESULTS / "pairwise_stats.csv", pairwise)
 
     ablation_methods = [f"ablation:{name}" for name in ABLATIONS]
-    ablation_tasks = make_eval_tasks(ablation_methods, ["combined_composition_shift"], models, ABLATION_EPISODES_PER_SEED)
+    ablation_tasks = make_eval_tasks(ablation_methods, args.ablation_splits, models, ABLATION_EPISODES_PER_SEED)
     ablation_rows = run_tasks(ablation_tasks, run_rollout_eval_task)
     write_csv(RESULTS / "ebm_grasping_ablation_raw.csv", ablation_rows)
     ablation_metrics = summarize(ablation_rows, ["method", "split"])
     write_csv(RESULTS / "ebm_grasping_ablation.csv", ablation_metrics)
     write_csv(RESULTS / "ablation_metrics.csv", ablation_metrics)
+    ablation_aggregate = summarize(ablation_rows, ["method"])
+    write_csv(RESULTS / "ablation_aggregate_metrics.csv", ablation_aggregate)
 
-    stress_methods = ["cem_grasp_search", "mlp_energy_model", "transformer_policy_ranker", "ensemble_uncertainty_ranker", "ebm_transformer_compositional"]
+    stress_methods = [
+        "cem_grasp_search",
+        "collision_aware_force_closure",
+        "robust_perturbation_ranker",
+        "mlp_energy_model",
+        "gradient_boosted_energy_model",
+        "calibrated_stacked_ranker",
+        "ensemble_uncertainty_ranker",
+        "ebm_transformer_compositional_v5",
+        "oracle_mujoco_grid",
+    ]
     stress_rows = []
-    for level in [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]:
+    for level in args.stress_levels:
         stress_tasks = make_eval_tasks(stress_methods, ["stress_sweep"], models, STRESS_EPISODES_PER_SEED, stress_level=level)
         stress_rows.extend(run_tasks(stress_tasks, run_rollout_eval_task))
     stress_metrics = summarize(stress_rows, ["method", "split"])
@@ -1106,25 +1354,59 @@ def main() -> None:
     plot_safety(metrics, FIGURES / "ebm_grasping_safety_failures.png")
 
     combined = {r["method"]: r for r in metrics if r["split"] == "combined_composition_shift"}
-    ablation_combined = {r["method"]: r for r in ablation_metrics if r["split"] == "combined_composition_shift"}
-    proposed = combined["ebm_transformer_compositional"]
-    best_non_oracle = max(
-        (r for m, r in combined.items() if m not in {"ebm_transformer_compositional", "oracle_mujoco_grid"}),
+    ablation_combined = {r["method"]: r for r in ablation_aggregate}
+    aggregate = {r["method"]: r for r in aggregate_metrics}
+    proposed = combined[PROPOSED_METHOD]
+    proposed_aggregate = aggregate[PROPOSED_METHOD]
+    best_combined_non_oracle = max(
+        (r for m, r in combined.items() if m not in {PROPOSED_METHOD, "oracle_mujoco_grid"}),
         key=lambda r: float(r["mean_success"]),
     )
+    best_aggregate_non_oracle = max(
+        (r for m, r in aggregate.items() if m not in {PROPOSED_METHOD, "oracle_mujoco_grid"}),
+        key=lambda r: float(r["mean_success"]),
+    )
+    proposed_safety = float(proposed_aggregate["collision_rate"]) + float(proposed_aggregate["unsafe_force_rate"])
+    best_aggregate_safety = float(best_aggregate_non_oracle["collision_rate"]) + float(best_aggregate_non_oracle["unsafe_force_rate"])
     terminal = "STRONG_REVISE"
-    reason = "EBM has real MuJoCo evidence but still needs hardware/public benchmark and deeper manual related work"
-    if float(proposed["mean_success"]) <= float(best_non_oracle["mean_success"]) + 0.025:
+    reasons = []
+    if float(proposed_aggregate["mean_success"]) <= float(best_aggregate_non_oracle["mean_success"]) + 0.030:
         terminal = "KILL_ARCHIVE"
-        reason = "EBM compositional ranker is matched or beaten by a non-oracle baseline on combined composition shift"
-    mono = ablation_combined.get("monolithic_scalar_energy_only")
-    full = ablation_combined.get("full_ebm_transformer_compositional")
-    if mono and full and float(mono["mean_success"]) >= float(full["mean_success"]) - 0.025:
+        reasons.append(
+            f"v5 does not beat strongest non-oracle aggregate baseline {best_aggregate_non_oracle['method']} by 0.030"
+        )
+    if float(proposed["mean_success"]) <= float(best_combined_non_oracle["mean_success"]) + 0.030:
         terminal = "KILL_ARCHIVE"
-        reason = "monolithic scalar energy ablation matches the full compositional EBM"
+        reasons.append(
+            f"v5 does not beat strongest combined-shift baseline {best_combined_non_oracle['method']} by 0.030"
+        )
+    if proposed_safety > best_aggregate_safety + 0.020:
+        terminal = "KILL_ARCHIVE"
+        reasons.append(f"v5 safety failures exceed {best_aggregate_non_oracle['method']} by more than 0.020")
+    full = ablation_combined.get("full_ebm_transformer_compositional_v5")
+    if full:
+        full_success = float(full["mean_success"])
+        matched = [
+            name
+            for name, row in ablation_combined.items()
+            if name != "full_ebm_transformer_compositional_v5" and float(row["mean_success"]) >= full_success - 0.020
+        ]
+        if matched:
+            terminal = "KILL_ARCHIVE"
+            reasons.append("ablation gate fails because " + ", ".join(matched[:3]) + " matches or beats full v5")
+    max_level = max(float(level) for level in args.stress_levels)
+    max_rows = {r["method"]: r for r in stress_output if abs(float(r["stress_level"]) - max_level) < 1e-9}
+    max_v5 = max_rows.get(PROPOSED_METHOD)
+    max_best = max((r for m, r in max_rows.items() if m not in {PROPOSED_METHOD, "oracle_mujoco_grid"}), key=lambda r: float(r["mean_success"]))
+    if max_v5 and float(max_v5["mean_success"]) < float(max_best["mean_success"]):
+        terminal = "KILL_ARCHIVE"
+        reasons.append(f"maximum stress gate fails against {max_best['method']}")
+    if not reasons:
+        reasons.append("all local gates pass, but hardware/public-benchmark validation is still missing")
+    reason = "; ".join(reasons)
 
     with (RESULTS / "summary.txt").open("w", encoding="utf-8") as handle:
-        handle.write("Paper 68 real MuJoCo EBM transformer compositional grasping rebuild\n")
+        handle.write("Paper 68 expanded MuJoCo EBM transformer compositional grasping rebuild\n")
         handle.write(f"Seeds: {SEEDS}; episodes per seed: {EPISODES_PER_SEED}; workers: {MAX_WORKERS}\n")
         handle.write(
             "Training rows: {rows}; training success rate: {success_rate:.4f}; feature dim: {feature_dim}\n".format(**train_summary)
@@ -1132,6 +1414,14 @@ def main() -> None:
         handle.write("Main rows: %d; ablation rows: %d; stress rows: %d\n" % (len(raw_rows), len(ablation_rows), len(stress_rows)))
         handle.write(f"Terminal decision: {terminal}\n")
         handle.write(f"Terminal reason: {reason}\n")
+        handle.write("\nAggregate main results:\n")
+        for method in METHODS:
+            row = aggregate[method]
+            handle.write(
+                f"- {method}: success={row['mean_success']} ci95={row['ci95_success']} "
+                f"slip={row['mean_slip']} drop={row['drop_rate']} collision={row['collision_rate']} "
+                f"unsafe={row['unsafe_force_rate']} energy={row['mean_energy']} sampled={row['sampled_candidates']}\n"
+            )
         handle.write("\nCombined-composition-shift main results:\n")
         for method in METHODS:
             row = combined[method]
@@ -1140,16 +1430,16 @@ def main() -> None:
                 f"slip={row['mean_slip']} drop={row['drop_rate']} collision={row['collision_rate']} "
                 f"unsafe={row['unsafe_force_rate']} energy={row['mean_energy']} sampled={row['sampled_candidates']}\n"
             )
-        handle.write("\nCombined-composition-shift ablations:\n")
+        handle.write("\nAggregate hostile ablations:\n")
         for method, row in sorted(ablation_combined.items()):
             handle.write(
                 f"- {method}: success={row['mean_success']} ci95={row['ci95_success']} "
                 f"collision={row['collision_rate']} unsafe={row['unsafe_force_rate']} sampled={row['sampled_candidates']}\n"
             )
-        handle.write("\nPairwise combined-shift comparisons vs ebm_transformer_compositional:\n")
+        handle.write(f"\nPairwise split comparisons vs {PROPOSED_METHOD}:\n")
         for row in pairwise:
             handle.write(
-                f"- {row['baseline']}: diff={row['mean_success_diff_vs_ebm']} "
+                f"- {row['split']} / {row['baseline']}: diff={row['mean_success_diff_vs_ebm']} "
                 f"t={row['paired_t_approx']} p={row['normal_approx_p']}\n"
             )
 

@@ -1,37 +1,198 @@
-Paper 68 real MuJoCo EBM transformer compositional grasping rebuild
-Seeds: [0, 1, 2, 3, 4]; episodes per seed: 10; workers: 4
-Training rows: 720; training success rate: 0.3944; feature dim: 31
-Main rows: 3150; ablation rows: 400; stress rows: 1200
+Paper 68 expanded MuJoCo EBM transformer compositional grasping rebuild
+Seeds: [0, 1, 2, 3, 4, 5, 6, 7]; episodes per seed: 15; workers: 4
+Training rows: 1152; training success rate: 0.4236; feature dim: 32
+Main rows: 18480; ablation rows: 4680; stress rows: 4320
 Terminal decision: KILL_ARCHIVE
-Terminal reason: EBM compositional ranker is matched or beaten by a non-oracle baseline on combined composition shift
+Terminal reason: v5 does not beat strongest non-oracle aggregate baseline ensemble_uncertainty_ranker by 0.030; v5 does not beat strongest combined-shift baseline calibrated_stacked_ranker by 0.030; ablation gate fails because monolithic_scalar_energy_only, no_cem_fallback, no_collision_energy matches or beats full v5; maximum stress gate fails against ensemble_uncertainty_ranker
+
+Aggregate main results:
+- random_grasp: success=0.2742 ci95=0.0241 slip=0.0784 drop=0.5348 collision=0.2621 unsafe=0.0000 energy=1.7840 sampled=1.00
+- antipodal_geometry: success=0.2947 ci95=0.0246 slip=0.0741 drop=0.3879 collision=0.2258 unsafe=0.0000 energy=2.6027 sampled=1.00
+- force_closure_score: success=0.4379 ci95=0.0268 slip=0.0673 drop=0.3886 collision=0.2288 unsafe=0.0000 energy=2.4102 sampled=1.00
+- collision_aware_force_closure: success=0.4265 ci95=0.0267 slip=0.0677 drop=0.4106 collision=0.2250 unsafe=0.0000 energy=2.4792 sampled=1.00
+- cem_grasp_search: success=0.4470 ci95=0.0268 slip=0.0684 drop=0.3682 collision=0.2250 unsafe=0.0000 energy=2.4983 sampled=1.00
+- robust_perturbation_ranker: success=0.4098 ci95=0.0265 slip=0.0697 drop=0.4364 collision=0.2265 unsafe=0.0000 energy=2.4437 sampled=1.00
+- mlp_energy_model: success=0.6894 ci95=0.0250 slip=0.0527 drop=0.1894 collision=0.2227 unsafe=0.0000 energy=2.1707 sampled=1.00
+- gradient_boosted_energy_model: success=0.7470 ci95=0.0235 slip=0.0539 drop=0.1447 collision=0.2167 unsafe=0.0000 energy=2.2685 sampled=1.00
+- transformer_policy_ranker: success=0.6788 ci95=0.0252 slip=0.0551 drop=0.1765 collision=0.2273 unsafe=0.0000 energy=2.2234 sampled=1.00
+- ensemble_uncertainty_ranker: success=0.7470 ci95=0.0235 slip=0.0579 drop=0.1409 collision=0.2167 unsafe=0.0000 energy=2.3026 sampled=1.00
+- calibrated_stacked_ranker: success=0.7394 ci95=0.0237 slip=0.0545 drop=0.1432 collision=0.2144 unsafe=0.0000 energy=2.4929 sampled=1.00
+- ebm_transformer_compositional: success=0.6386 ci95=0.0259 slip=0.0609 drop=0.1932 collision=0.2220 unsafe=0.0000 energy=2.5222 sampled=1.00
+- ebm_transformer_compositional_v5: success=0.6674 ci95=0.0254 slip=0.0582 drop=0.2038 collision=0.2220 unsafe=0.0000 energy=2.6137 sampled=1.00
+- oracle_mujoco_grid: success=0.7712 ci95=0.0227 slip=0.0362 drop=0.0689 collision=0.1591 unsafe=0.0000 energy=2.6907 sampled=7.00
 
 Combined-composition-shift main results:
-- random_grasp: success=0.0200 ci95=0.0392 slip=0.1144 drop=0.8000 collision=0.9400 unsafe=0.0000 energy=1.7493 sampled=1.00
-- antipodal_geometry: success=0.0800 ci95=0.0760 slip=0.0944 drop=0.5600 collision=0.8400 unsafe=0.0000 energy=3.1881 sampled=1.00
-- force_closure_score: success=0.1400 ci95=0.0972 slip=0.0857 drop=0.3600 collision=0.7800 unsafe=0.0000 energy=3.5449 sampled=1.00
-- cem_grasp_search: success=0.1000 ci95=0.0840 slip=0.0807 drop=0.3600 collision=0.8200 unsafe=0.0000 energy=3.9600 sampled=1.00
-- mlp_energy_model: success=0.1400 ci95=0.0972 slip=0.0754 drop=0.4000 collision=0.8400 unsafe=0.0000 energy=3.6247 sampled=1.00
-- transformer_policy_ranker: success=0.0600 ci95=0.0665 slip=0.0757 drop=0.4200 collision=0.9000 unsafe=0.0000 energy=2.7368 sampled=1.00
-- ensemble_uncertainty_ranker: success=0.1000 ci95=0.0840 slip=0.0830 drop=0.4400 collision=0.8200 unsafe=0.0000 energy=3.5636 sampled=1.00
-- ebm_transformer_compositional: success=0.0800 ci95=0.0760 slip=0.0848 drop=0.4200 collision=0.8200 unsafe=0.0000 energy=3.5738 sampled=1.00
-- oracle_mujoco_grid: success=0.2000 ci95=0.1120 slip=0.0502 drop=0.1200 collision=0.7400 unsafe=0.0000 energy=4.0677 sampled=6.00
+- random_grasp: success=0.0083 ci95=0.0163 slip=0.0843 drop=0.6500 collision=0.9833 unsafe=0.0000 energy=2.2182 sampled=1.00
+- antipodal_geometry: success=0.0500 ci95=0.0392 slip=0.0930 drop=0.4000 collision=0.8667 unsafe=0.0000 energy=3.6416 sampled=1.00
+- force_closure_score: success=0.0667 ci95=0.0448 slip=0.0885 drop=0.4000 collision=0.8750 unsafe=0.0000 energy=3.6557 sampled=1.00
+- collision_aware_force_closure: success=0.0500 ci95=0.0392 slip=0.0890 drop=0.4250 collision=0.9000 unsafe=0.0000 energy=3.4689 sampled=1.00
+- cem_grasp_search: success=0.0417 ci95=0.0359 slip=0.0892 drop=0.3833 collision=0.9000 unsafe=0.0000 energy=3.7189 sampled=1.00
+- robust_perturbation_ranker: success=0.0417 ci95=0.0359 slip=0.0881 drop=0.4333 collision=0.8917 unsafe=0.0000 energy=3.3924 sampled=1.00
+- mlp_energy_model: success=0.0500 ci95=0.0392 slip=0.0731 drop=0.4833 collision=0.9500 unsafe=0.0000 energy=2.8514 sampled=1.00
+- gradient_boosted_energy_model: success=0.0667 ci95=0.0448 slip=0.0871 drop=0.4917 collision=0.8667 unsafe=0.0000 energy=3.2225 sampled=1.00
+- transformer_policy_ranker: success=0.0250 ci95=0.0281 slip=0.0736 drop=0.5083 collision=0.9333 unsafe=0.0000 energy=2.7397 sampled=1.00
+- ensemble_uncertainty_ranker: success=0.0750 ci95=0.0473 slip=0.0859 drop=0.5000 collision=0.8500 unsafe=0.0000 energy=3.3299 sampled=1.00
+- calibrated_stacked_ranker: success=0.0750 ci95=0.0473 slip=0.0804 drop=0.3667 collision=0.8583 unsafe=0.0000 energy=3.5786 sampled=1.00
+- ebm_transformer_compositional: success=0.0500 ci95=0.0392 slip=0.0886 drop=0.4083 collision=0.8750 unsafe=0.0000 energy=3.6633 sampled=1.00
+- ebm_transformer_compositional_v5: success=0.0667 ci95=0.0448 slip=0.0851 drop=0.4167 collision=0.8833 unsafe=0.0000 energy=3.4932 sampled=1.00
+- oracle_mujoco_grid: success=0.2250 ci95=0.0750 slip=0.0455 drop=0.0333 collision=0.7333 unsafe=0.0000 energy=4.5292 sampled=7.00
 
-Combined-composition-shift ablations:
-- full_ebm_transformer_compositional: success=0.1800 ci95=0.1076 collision=0.7400 unsafe=0.0000 sampled=1.00
-- monolithic_scalar_energy_only: success=0.0400 ci95=0.0549 collision=0.9200 unsafe=0.0000 sampled=1.00
-- no_collision_energy: success=0.0800 ci95=0.0760 collision=0.9000 unsafe=0.0000 sampled=1.00
-- no_contact_energy: success=0.0800 ci95=0.0760 collision=0.8400 unsafe=0.0000 sampled=1.00
-- no_feasibility_energy: success=0.0600 ci95=0.0665 collision=0.8800 unsafe=0.0000 sampled=1.00
-- no_object_energy: success=0.0800 ci95=0.0760 collision=0.8200 unsafe=0.0000 sampled=1.00
-- no_task_energy: success=0.0800 ci95=0.0760 collision=0.8400 unsafe=0.0000 sampled=1.00
-- no_transformer_context: success=0.1000 ci95=0.0840 collision=0.8400 unsafe=0.0000 sampled=1.00
+Aggregate hostile ablations:
+- full_ebm_transformer_compositional_v5: success=0.1889 ci95=0.0405 collision=0.6194 unsafe=0.0000 sampled=1.00
+- monolithic_scalar_energy_only: success=0.2389 ci95=0.0441 collision=0.6167 unsafe=0.0000 sampled=1.00
+- no_calibrated_stack: success=0.1333 ci95=0.0352 collision=0.6194 unsafe=0.0000 sampled=1.00
+- no_cem_fallback: success=0.1889 ci95=0.0405 collision=0.6194 unsafe=0.0000 sampled=1.00
+- no_collision_energy: success=0.1861 ci95=0.0403 collision=0.6250 unsafe=0.0000 sampled=1.00
+- no_contact_energy: success=0.2250 ci95=0.0432 collision=0.6250 unsafe=0.0000 sampled=1.00
+- no_feasibility_energy: success=0.1889 ci95=0.0405 collision=0.6167 unsafe=0.0000 sampled=1.00
+- no_hard_collision_filter: success=0.1889 ci95=0.0405 collision=0.6194 unsafe=0.0000 sampled=1.00
+- no_object_energy: success=0.1917 ci95=0.0407 collision=0.6194 unsafe=0.0000 sampled=1.00
+- no_robust_perturbation: success=0.2028 ci95=0.0416 collision=0.6167 unsafe=0.0000 sampled=1.00
+- no_task_energy: success=0.1889 ci95=0.0405 collision=0.6250 unsafe=0.0000 sampled=1.00
+- no_transformer_context: success=0.1833 ci95=0.0400 collision=0.6222 unsafe=0.0000 sampled=1.00
+- old_v4_compositional: success=0.1583 ci95=0.0378 collision=0.6111 unsafe=0.0000 sampled=1.00
 
-Pairwise combined-shift comparisons vs ebm_transformer_compositional:
-- random_grasp: diff=0.0600 t=1.0000 p=0.3173
-- antipodal_geometry: diff=0.0000 t=0.0000 p=1.0000
-- force_closure_score: diff=-0.0600 t=-0.5145 p=0.6069
-- cem_grasp_search: diff=-0.0200 t=-0.2722 p=0.7855
-- mlp_energy_model: diff=-0.0600 t=-1.1767 p=0.2393
-- transformer_policy_ranker: diff=0.0200 t=0.3015 p=0.7630
-- ensemble_uncertainty_ranker: diff=-0.0200 t=-0.3015 p=0.7630
-- oracle_mujoco_grid: diff=-0.1200 t=-2.4495 p=0.0143
+Pairwise split comparisons vs ebm_transformer_compositional_v5:
+- seen_simple / antipodal_geometry: diff=0.1917 t=8.2049 p=0.0000
+- seen_simple / calibrated_stacked_ranker: diff=0.0000 t=0.0000 p=1.0000
+- seen_simple / cem_grasp_search: diff=0.1250 t=6.3568 p=0.0000
+- seen_simple / collision_aware_force_closure: diff=0.0750 t=3.2111 p=0.0013
+- seen_simple / ebm_transformer_compositional: diff=0.0167 t=1.5275 p=0.1266
+- seen_simple / ensemble_uncertainty_ranker: diff=0.0000 t=0.0000 p=1.0000
+- seen_simple / force_closure_score: diff=0.1000 t=7.9452 p=0.0000
+- seen_simple / gradient_boosted_energy_model: diff=0.0000 t=0.0000 p=1.0000
+- seen_simple / mlp_energy_model: diff=0.0000 t=0.0000 p=1.0000
+- seen_simple / oracle_mujoco_grid: diff=0.0000 t=0.0000 p=1.0000
+- seen_simple / random_grasp: diff=0.1333 t=3.0553 p=0.0022
+- seen_simple / robust_perturbation_ranker: diff=0.0667 t=2.6462 p=0.0081
+- seen_simple / transformer_policy_ranker: diff=0.0167 t=1.5275 p=0.1266
+- unseen_dimensions / antipodal_geometry: diff=0.2333 t=6.5487 p=0.0000
+- unseen_dimensions / calibrated_stacked_ranker: diff=-0.0333 t=-1.8712 p=0.0613
+- unseen_dimensions / cem_grasp_search: diff=0.3250 t=8.8815 p=0.0000
+- unseen_dimensions / collision_aware_force_closure: diff=0.2500 t=7.1274 p=0.0000
+- unseen_dimensions / ebm_transformer_compositional: diff=0.0667 t=3.0554 p=0.0022
+- unseen_dimensions / ensemble_uncertainty_ranker: diff=-0.0333 t=-1.8712 p=0.0613
+- unseen_dimensions / force_closure_score: diff=0.3417 t=11.6317 p=0.0000
+- unseen_dimensions / gradient_boosted_energy_model: diff=-0.0333 t=-1.8712 p=0.0613
+- unseen_dimensions / mlp_energy_model: diff=0.0000 t=0.0000 p=1.0000
+- unseen_dimensions / oracle_mujoco_grid: diff=-0.0167 t=-1.0000 p=0.3173
+- unseen_dimensions / random_grasp: diff=0.5750 t=22.9956 p=0.0000
+- unseen_dimensions / robust_perturbation_ranker: diff=0.2667 t=7.0564 p=0.0000
+- unseen_dimensions / transformer_policy_ranker: diff=-0.0083 t=-0.4231 p=0.6722
+- unseen_shape_family / antipodal_geometry: diff=0.6000 t=13.7486 p=0.0000
+- unseen_shape_family / calibrated_stacked_ranker: diff=-0.0167 t=-1.5275 p=0.1266
+- unseen_shape_family / cem_grasp_search: diff=0.0417 t=2.3756 p=0.0175
+- unseen_shape_family / collision_aware_force_closure: diff=0.0583 t=3.8612 p=0.0001
+- unseen_shape_family / ebm_transformer_compositional: diff=0.0667 t=2.6458 p=0.0082
+- unseen_shape_family / ensemble_uncertainty_ranker: diff=-0.0167 t=-1.5275 p=0.1266
+- unseen_shape_family / force_closure_score: diff=0.0750 t=4.9642 p=0.0000
+- unseen_shape_family / gradient_boosted_energy_model: diff=-0.0250 t=-2.0494 p=0.0404
+- unseen_shape_family / mlp_energy_model: diff=0.0583 t=2.1990 p=0.0279
+- unseen_shape_family / oracle_mujoco_grid: diff=-0.0333 t=-1.8712 p=0.0613
+- unseen_shape_family / random_grasp: diff=0.5750 t=13.7985 p=0.0000
+- unseen_shape_family / robust_perturbation_ranker: diff=0.0417 t=2.3765 p=0.0175
+- unseen_shape_family / transformer_policy_ranker: diff=0.0500 t=2.0494 p=0.0404
+- slippery_contact / antipodal_geometry: diff=0.2083 t=3.4904 p=0.0005
+- slippery_contact / calibrated_stacked_ranker: diff=-0.3583 t=-10.0929 p=0.0000
+- slippery_contact / cem_grasp_search: diff=0.2750 t=4.0929 p=0.0000
+- slippery_contact / collision_aware_force_closure: diff=0.2583 t=8.0804 p=0.0000
+- slippery_contact / ebm_transformer_compositional: diff=-0.1000 t=-2.1219 p=0.0338
+- slippery_contact / ensemble_uncertainty_ranker: diff=-0.3500 t=-8.8957 p=0.0000
+- slippery_contact / force_closure_score: diff=0.2583 t=5.3953 p=0.0000
+- slippery_contact / gradient_boosted_energy_model: diff=-0.3667 t=-13.0116 p=0.0000
+- slippery_contact / mlp_energy_model: diff=-0.2750 t=-4.9513 p=0.0000
+- slippery_contact / oracle_mujoco_grid: diff=-0.2667 t=-5.4647 p=0.0000
+- slippery_contact / random_grasp: diff=0.1666 t=2.6452 p=0.0082
+- slippery_contact / robust_perturbation_ranker: diff=0.2750 t=5.2271 p=0.0000
+- slippery_contact / transformer_policy_ranker: diff=-0.3000 t=-7.9373 p=0.0000
+- clutter_collision / antipodal_geometry: diff=0.0750 t=2.5527 p=0.0107
+- clutter_collision / calibrated_stacked_ranker: diff=-0.0667 t=-2.0004 p=0.0455
+- clutter_collision / cem_grasp_search: diff=0.0500 t=1.2102 p=0.2262
+- clutter_collision / collision_aware_force_closure: diff=0.0500 t=1.5274 p=0.1267
+- clutter_collision / ebm_transformer_compositional: diff=0.0250 t=1.1584 p=0.2467
+- clutter_collision / ensemble_uncertainty_ranker: diff=-0.0083 t=-0.2151 p=0.8297
+- clutter_collision / force_closure_score: diff=0.0750 t=2.3465 p=0.0190
+- clutter_collision / gradient_boosted_energy_model: diff=-0.0333 t=-0.6235 p=0.5329
+- clutter_collision / mlp_energy_model: diff=-0.0833 t=-3.9884 p=0.0001
+- clutter_collision / oracle_mujoco_grid: diff=-0.4667 t=-13.0961 p=0.0000
+- clutter_collision / random_grasp: diff=0.3167 t=7.6670 p=0.0000
+- clutter_collision / robust_perturbation_ranker: diff=0.0583 t=1.5076 p=0.1317
+- clutter_collision / transformer_policy_ranker: diff=0.0084 t=0.3146 p=0.7530
+- task_constraint_shift / antipodal_geometry: diff=0.9250 t=61.2606 p=0.0000
+- task_constraint_shift / calibrated_stacked_ranker: diff=-0.0083 t=-1.0000 p=0.3173
+- task_constraint_shift / cem_grasp_search: diff=0.6833 t=24.8865 p=0.0000
+- task_constraint_shift / collision_aware_force_closure: diff=0.8500 t=24.2334 p=0.0000
+- task_constraint_shift / ebm_transformer_compositional: diff=0.0500 t=3.0004 p=0.0027
+- task_constraint_shift / ensemble_uncertainty_ranker: diff=-0.0083 t=-1.0000 p=0.3173
+- task_constraint_shift / force_closure_score: diff=0.7417 t=23.1988 p=0.0000
+- task_constraint_shift / gradient_boosted_energy_model: diff=0.0000 t=0.0000 p=1.0000
+- task_constraint_shift / mlp_energy_model: diff=0.0250 t=0.8929 p=0.3719
+- task_constraint_shift / oracle_mujoco_grid: diff=0.0917 t=4.2465 p=0.0000
+- task_constraint_shift / random_grasp: diff=0.8083 t=27.5142 p=0.0000
+- task_constraint_shift / robust_perturbation_ranker: diff=0.8833 t=26.9864 p=0.0000
+- task_constraint_shift / transformer_policy_ranker: diff=0.0583 t=2.4975 p=0.0125
+- combined_composition_shift / antipodal_geometry: diff=0.0167 t=1.5275 p=0.1266
+- combined_composition_shift / calibrated_stacked_ranker: diff=-0.0083 t=-1.0000 p=0.3173
+- combined_composition_shift / cem_grasp_search: diff=0.0250 t=2.0494 p=0.0404
+- combined_composition_shift / collision_aware_force_closure: diff=0.0167 t=1.5275 p=0.1266
+- combined_composition_shift / ebm_transformer_compositional: diff=0.0167 t=1.0000 p=0.3173
+- combined_composition_shift / ensemble_uncertainty_ranker: diff=-0.0083 t=-0.5523 p=0.5808
+- combined_composition_shift / force_closure_score: diff=0.0000 t=0.0000 p=1.0000
+- combined_composition_shift / gradient_boosted_energy_model: diff=0.0000 t=0.0005 p=0.9996
+- combined_composition_shift / mlp_energy_model: diff=0.0167 t=1.5275 p=0.1266
+- combined_composition_shift / oracle_mujoco_grid: diff=-0.1583 t=-5.6547 p=0.0000
+- combined_composition_shift / random_grasp: diff=0.0583 t=2.9664 p=0.0030
+- combined_composition_shift / robust_perturbation_ranker: diff=0.0250 t=2.0494 p=0.0404
+- combined_composition_shift / transformer_policy_ranker: diff=0.0417 t=2.3761 p=0.0175
+- long_bar_high_aspect / antipodal_geometry: diff=0.7000 t=12.7452 p=0.0000
+- long_bar_high_aspect / calibrated_stacked_ranker: diff=-0.0917 t=-3.2743 p=0.0011
+- long_bar_high_aspect / cem_grasp_search: diff=0.5583 t=18.1877 p=0.0000
+- long_bar_high_aspect / collision_aware_force_closure: diff=0.8333 t=26.9994 p=0.0000
+- long_bar_high_aspect / ebm_transformer_compositional: diff=0.0416 t=1.6658 p=0.0958
+- long_bar_high_aspect / ensemble_uncertainty_ranker: diff=-0.0750 t=-2.1827 p=0.0291
+- long_bar_high_aspect / force_closure_score: diff=0.6000 t=19.4390 p=0.0000
+- long_bar_high_aspect / gradient_boosted_energy_model: diff=-0.0667 t=-1.9994 p=0.0456
+- long_bar_high_aspect / mlp_energy_model: diff=-0.0167 t=-0.5515 p=0.5813
+- long_bar_high_aspect / oracle_mujoco_grid: diff=-0.0167 t=-0.6073 p=0.5437
+- long_bar_high_aspect / random_grasp: diff=0.7333 t=19.4036 p=0.0000
+- long_bar_high_aspect / robust_perturbation_ranker: diff=0.8500 t=28.1348 p=0.0000
+- long_bar_high_aspect / transformer_policy_ranker: diff=0.0250 t=0.6638 p=0.5068
+- thin_handle_shift / antipodal_geometry: diff=0.9750 t=55.6045 p=0.0000
+- thin_handle_shift / calibrated_stacked_ranker: diff=-0.0167 t=-1.5275 p=0.1266
+- thin_handle_shift / cem_grasp_search: diff=0.0917 t=2.9863 p=0.0028
+- thin_handle_shift / collision_aware_force_closure: diff=0.0750 t=2.3465 p=0.0190
+- thin_handle_shift / ebm_transformer_compositional: diff=0.0583 t=3.8632 p=0.0001
+- thin_handle_shift / ensemble_uncertainty_ranker: diff=-0.0167 t=-0.7975 p=0.4252
+- thin_handle_shift / force_closure_score: diff=0.0833 t=5.0026 p=0.0000
+- thin_handle_shift / gradient_boosted_energy_model: diff=-0.0250 t=-1.4258 p=0.1539
+- thin_handle_shift / mlp_energy_model: diff=0.0000 t=0.0006 p=0.9995
+- thin_handle_shift / oracle_mujoco_grid: diff=-0.0250 t=-1.4258 p=0.1539
+- thin_handle_shift / random_grasp: diff=0.6333 t=12.5685 p=0.0000
+- thin_handle_shift / robust_perturbation_ranker: diff=0.1084 t=3.8702 p=0.0001
+- thin_handle_shift / transformer_policy_ranker: diff=0.0417 t=1.9311 p=0.0535
+- adversarial_clutter_gap / antipodal_geometry: diff=0.0083 t=1.0000 p=0.3173
+- adversarial_clutter_gap / calibrated_stacked_ranker: diff=0.0083 t=1.0000 p=0.3173
+- adversarial_clutter_gap / cem_grasp_search: diff=0.0083 t=1.0000 p=0.3173
+- adversarial_clutter_gap / collision_aware_force_closure: diff=0.0000 t=0.0000 p=1.0000
+- adversarial_clutter_gap / ebm_transformer_compositional: diff=-0.0083 t=-1.0000 p=0.3173
+- adversarial_clutter_gap / ensemble_uncertainty_ranker: diff=0.0083 t=1.0000 p=0.3173
+- adversarial_clutter_gap / force_closure_score: diff=0.0083 t=1.0000 p=0.3173
+- adversarial_clutter_gap / gradient_boosted_energy_model: diff=0.0083 t=1.0000 p=0.3173
+- adversarial_clutter_gap / mlp_energy_model: diff=0.0083 t=1.0000 p=0.3173
+- adversarial_clutter_gap / oracle_mujoco_grid: diff=-0.0583 t=-2.4970 p=0.0125
+- adversarial_clutter_gap / random_grasp: diff=0.0000 t=0.0000 p=1.0000
+- adversarial_clutter_gap / robust_perturbation_ranker: diff=0.0083 t=1.0000 p=0.3173
+- adversarial_clutter_gap / transformer_policy_ranker: diff=0.0083 t=1.0000 p=0.3173
+- material_shift_proxy / antipodal_geometry: diff=0.1667 t=1.8711 p=0.0613
+- material_shift_proxy / calibrated_stacked_ranker: diff=-0.2000 t=-3.6420 p=0.0003
+- material_shift_proxy / cem_grasp_search: diff=0.2417 t=3.0741 p=0.0021
+- material_shift_proxy / collision_aware_force_closure: diff=0.1833 t=2.5828 p=0.0098
+- material_shift_proxy / ebm_transformer_compositional: diff=0.0833 t=2.7594 p=0.0058
+- material_shift_proxy / ensemble_uncertainty_ranker: diff=-0.3667 t=-6.3508 p=0.0000
+- material_shift_proxy / force_closure_score: diff=0.2417 t=4.1928 p=0.0000
+- material_shift_proxy / gradient_boosted_energy_model: diff=-0.3333 t=-4.7518 p=0.0000
+- material_shift_proxy / mlp_energy_model: diff=0.0250 t=0.4237 p=0.6718
+- material_shift_proxy / oracle_mujoco_grid: diff=-0.1917 t=-2.5926 p=0.0095
+- material_shift_proxy / random_grasp: diff=0.3250 t=4.7551 p=0.0000
+- material_shift_proxy / robust_perturbation_ranker: diff=0.2500 t=3.3190 p=0.0009
+- material_shift_proxy / transformer_policy_ranker: diff=-0.0667 t=-1.3662 p=0.1719

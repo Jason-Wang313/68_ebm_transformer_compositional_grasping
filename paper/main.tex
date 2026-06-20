@@ -1,163 +1,381 @@
 \documentclass{article}
 \usepackage{iclr2026_conference,times}
 \input{math_commands.tex}
+\usepackage{xcolor}
 \usepackage{hyperref}
 \usepackage{url}
 \usepackage{booktabs}
+\usepackage{longtable}
 \usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{array}
+\usepackage{microtype}
 
-\title{EBM Transformer Compositional Grasping:\\A MuJoCo Negative Result}
+\hypersetup{
+  colorlinks=false,
+  pdfborder={0 0 1.8},
+  citebordercolor={0 1 0},
+  linkbordercolor={0 0.55 1},
+  urlbordercolor={1 0.45 0}
+}
+
+\input{generated/result_macros.tex}
+
+\title{EBM Transformer Compositional Grasping:\\A Frozen MuJoCo Stress Test and Negative Result}
 \author{Anonymous Authors}
+
+\newcommand{\method}{EBM-v5}
+\newcommand{\oldmethod}{EBM-v4}
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
-This paper records a negative result for an energy-based Transformer mechanism for compositional grasping.
-The hypothesis was that grasp selection should compose separate object, contact, task, collision, and feasibility energies instead of collapsing a scene into one policy token.
-We rebuilt the idea as a MuJoCo parallel-jaw grasping benchmark with rollout-labeled training data, learned rankers, analytic force-closure and CEM baselines, ablations, stress sweeps, and seed-level uncertainty.
-The mechanism fails the submission gate.
-On the combined object/contact/task/clutter shift, the proposed EBM/Transformer ranker reaches 0.080 success, while force-closure and MLP energy baselines reach 0.140.
-Pairwise seed comparisons show no reliable advantage over strong non-oracle baselines.
-We therefore mark this project \textbf{KILL/ARCHIVE} for ICLR main rather than submit an unsupported compositional-grasping claim.
+Compositional grasping is an attractive idea: instead of learning one opaque scalar score for every grasp, a robot should compose object geometry, contact stability, task compatibility, clutter risk, feasibility, and learned context.
+This paper tests that idea under a deliberately hostile protocol.
+We rebuild an energy-based Transformer grasp ranker as a CPU-only MuJoCo benchmark with rollout-labeled training data, analytic force-closure baselines, CEM-style grasp search, learned MLP/HGB/Transformer/ensemble rankers, a calibrated stacked ranker, a robust perturbation baseline, hostile ablations, stress sweeps, seed-level paired statistics, and pre-specified negative cases.
+The final frozen evidence contains \TrainingRows{} training rollouts, \MainRows{} main evaluation rows, \AblationRows{} ablation rows, and \StressRows{} stress rows.
+The terminal decision is \textbf{\PaperDecision}.
+The reason is not formatting, lack of effort, or a missing plot: \PaperDecisionReason.
+The result is therefore a submission-readiness audit, not a polished success story.
+It shows exactly where the compositional EBM/Transformer mechanism fails to separate itself from strong analytic and learned alternatives.
 \end{abstract}
 
-\section{Question}
-Transformer-based grasping, open-vocabulary affordance localization, and task-aware grasp planning are crowded areas~\citep{prior1,prior2,prior4}.
-The original research bet here was specific: a grasp should not be represented by a single policy token.
-Instead, grasp ranking should compose object geometry, contact stability, task constraints, clutter/collision risk, and gripper feasibility as separate energy terms.
-That mechanism is appealing because grasp success often fails through one violated factor.
-The empirical question is whether explicit energy composition actually improves closed-loop grasping under held-out object and task compositions.
+\section{Why this paper exists}
 
-\section{Benchmark}
-We implemented a compact MuJoCo parallel-jaw grasping benchmark.
-Candidate grasps are parameterized by planar center, approach angle, jaw width, closing force, and lift tilt.
-Each candidate is executed by closing two position-controlled capsule fingers around a free object and lifting it.
-The benchmark records lift success, slip, drop, collision with clutter, unsafe force, energy, and task satisfaction.
+Robotic grasping is full of mechanisms that sound correct before they are placed under strong baselines.
+Analytic grasp metrics encode contact geometry and wrench resistance.
+Large synthetic grasp datasets and grasp-quality networks showed that analytic labels can train useful grasp planners at scale~\citep{mahler2017dexnet2}.
+Large benchmarks such as GraspNet-1Billion pushed the field toward dense 6-DoF evaluation in clutter~\citep{fang2020graspnet}.
+Contact-based 6-DoF proposal networks further showed that direct depth-to-grasp distributions can be practical in structured clutter~\citep{sundermeyer2021contactgraspnet}.
+At the same time, vision-based closed-loop grasping and manipulation systems show that learned policies can dominate simple hand-designed selectors when data and feedback are sufficient~\citep{kalashnikov2018qtopt,zeng2018vpg}.
 
-The seven main splits are seen simple objects, unseen dimensions, unseen shape family, slippery contact, clutter collision, task constraint shift, and combined composition shift.
-Objects include cuboids, cylinders, bars, and asymmetric L/T composites.
-Tasks include lift-only, avoid a forbidden face, grasp a long-side handle, and clutter-safe extraction.
+The hypothesis behind this project is narrower than ``Transformers solve grasping.''
+It says that grasp selection under object, contact, task, and clutter shift should benefit from an explicit additive energy decomposition.
+The claim is plausible.
+Energy-based models provide a natural language for ranking structured outputs~\citep{lecun2006tutorial,grathwohl2020jem}.
+Transformers provide a compact architecture for contextual sequence scoring~\citep{vaswani2017attention}.
+Task-conditioned manipulation work also suggests that semantic and spatial factors should not be collapsed too early~\citep{detry2017task,zeng2021transporter,shridhar2022cliport}.
 
-We compare nine methods.
-\texttt{random\_grasp} is a lower bound.
-\texttt{antipodal\_geometry} uses geometric width and centering.
-\texttt{force\_closure\_score} adds friction and squeeze terms.
-\texttt{cem\_grasp\_search} uses a stronger analytic candidate score.
-\texttt{mlp\_energy\_model} is a trained scalar MLP over grasp/object/task features.
-\texttt{transformer\_policy\_ranker} is a small context-aware Transformer ranker trained on MuJoCo rollout labels.
-\texttt{ensemble\_uncertainty\_ranker} penalizes learned disagreement.
-\texttt{ebm\_transformer\_compositional} is the proposed method, composing learned context with object/contact/task/collision/feasibility energies.
-\texttt{oracle\_mujoco\_grid} evaluates six candidate grasps in MuJoCo and is a non-submission upper bound.
+Plausible is not enough.
+The useful question is whether explicit compositional energy survives a strong closed-loop grasp-selection audit.
+The answer in this frozen rebuild is no.
+The method improves the old ranker in some places, but it does not clear the strongest non-oracle baselines, and its own ablations expose that the mechanism is not identified cleanly.
 
-\section{Training and Evaluation}
-The training set contains 720 MuJoCo candidate rollouts with a 0.394 success rate.
-The main evaluation contains 3,150 MuJoCo rollouts: 5 seeds, 10 episodes per seed, 7 splits, and 9 methods.
-The ablation suite adds 400 rollouts and the stress sweep adds 1,200 rollouts.
-All reported success rates are measured by executed MuJoCo grasps, not by the learned model scores.
+\section{Problem setting}
 
-\begin{table}[t]
-\centering
-\small
-\setlength{\tabcolsep}{3pt}
-\caption{Combined composition-shift results. The proposed method does not clear analytic or learned baselines.}
-\label{tab:combined}
-\begin{tabular}{lcccccc}
-\toprule
-Method & Succ. & 95\% CI & Slip & Drop & Collision & Energy \\
-\midrule
-\texttt{random\_grasp} & 0.020 & 0.039 & 0.114 & 0.800 & 0.940 & 1.749 \\
-\texttt{antipodal\_geometry} & 0.080 & 0.076 & 0.094 & 0.560 & 0.840 & 3.188 \\
-\texttt{force\_closure\_score} & 0.140 & 0.097 & 0.086 & 0.360 & 0.780 & 3.545 \\
-\texttt{cem\_grasp\_search} & 0.100 & 0.084 & 0.081 & 0.360 & 0.820 & 3.960 \\
-\texttt{mlp\_energy\_model} & 0.140 & 0.097 & 0.075 & 0.400 & 0.840 & 3.625 \\
-\texttt{transformer\_policy\_ranker} & 0.060 & 0.067 & 0.076 & 0.420 & 0.900 & 2.737 \\
-\texttt{ensemble\_uncertainty\_ranker} & 0.100 & 0.084 & 0.083 & 0.440 & 0.820 & 3.564 \\
-\texttt{ebm\_transformer\_compositional} & 0.080 & 0.076 & 0.085 & 0.420 & 0.820 & 3.574 \\
-\texttt{oracle\_mujoco\_grid} & 0.200 & 0.112 & 0.050 & 0.120 & 0.740 & 4.068 \\
-\bottomrule
-\end{tabular}
-\end{table}
+Each episode samples a source-to-target grasping scene $s$ and a candidate set $A(s)=\{a_1,\ldots,a_m\}$.
+A candidate action $a$ is a planar parallel-jaw grasp specified by center, angle, jaw width, closing force, and lift tilt.
+The MuJoCo rollout returns success $Y(s,a)$ and diagnostics:
+drop, slip, collision, unsafe force, energy, task satisfaction, and final displacement.
+The learning system observes analytic and learned features, selects one candidate, and then the simulator executes the grasp.
+
+The paper evaluates a ranker, not a full perception stack.
+The benchmark abstracts perception into object extents, shape family, friction proxy, task labels, clutter geometry, and candidate features.
+This is intentional.
+If a compositional grasp score cannot beat strong rankers in this controlled setting, it is not ready for a larger visual or hardware claim.
+If it does beat them, the next version would still need RGB-D, tactile/material uncertainty, hardware, and public-benchmark validation.
+
+\subsection{Shifts}
+
+The frozen main protocol contains eleven splits:
+seen simple objects, unseen dimensions, unseen shape family, slippery contact, clutter collision, task constraint shift, combined composition shift, long high-aspect bars, thin handle shift, adversarial clutter gap, and material-shift proxy.
+The last five are the hostile splits.
+They deliberately combine factors that make naive compositional scoring brittle: narrow viable approach windows, collision-prone clutter, low friction, high aspect ratio, and task-specific contact constraints.
+
+\subsection{Methods}
+
+The comparison set is intentionally uncomfortable for the proposed method.
+It includes:
+\texttt{random\_grasp};
+\texttt{antipodal\_geometry};
+\texttt{force\_closure\_score};
+\texttt{collision\_aware\_force\_closure};
+\texttt{cem\_grasp\_search};
+\texttt{robust\_perturbation\_ranker};
+\texttt{mlp\_energy\_model};
+\texttt{gradient\_boosted\_energy\_model};
+\texttt{transformer\_policy\_ranker};
+\texttt{ensemble\_uncertainty\_ranker};
+\texttt{calibrated\_stacked\_ranker};
+the old compositional EBM;
+the repaired \method{};
+and a non-submission oracle grid.
+The oracle evaluates multiple candidate grasps in MuJoCo and is included only to show whether the candidate set contains a better option.
+
+\section{The compositional ranker}
+
+Let $c_k(s,a)$ denote analytic costs for object alignment, contact stability, task compatibility, collision clearance, feasibility, and robust perturbation risk.
+Let $p_T(s,a)$ be the Transformer score, $p_M(s,a)$ the MLP score, $p_H(s,a)$ the gradient-boosted score, $p_E(s,a)$ the ensemble score, and $p_S(s,a)$ the scalar-energy score.
+The old method used a simple learned-context minus weighted-energy objective.
+The repaired v5 method uses
+\begin{equation}
+  R_{\text{v5}}(s,a)
+  =
+  1.35\,p_{\text{stack}}(s,a)
+  - \sum_k \lambda_k c_k(s,a)
+  - h(s,a),
+\end{equation}
+where
+\begin{equation}
+  p_{\text{stack}} =
+  0.30p_T + 0.26p_M + 0.24p_H + 0.14p_E + 0.06p_S.
+\end{equation}
+The hard penalty $h$ activates when collision or robust perturbation risk crosses a fixed threshold.
+If the selected candidate has high robust risk, v5 falls back to the robust perturbation analytic ranker.
+This fallback is not hidden; it is an explicit part of the method and is ablated.
+
+The fallback is also a weakness.
+If the fallback dominates the decision, then the paper is not proving that compositional EBM scoring is necessary.
+It is proving that a robust analytic fallback is useful.
+That distinction becomes central in the ablation results.
+
+\section{What the theory can and cannot say}
+
+The theory here is intentionally narrow.
+It exists to connect the method to falsifiable assumptions, not to turn a simulator result into a hardware theorem.
+
+\paragraph{Proposition 1: additive certificates.}
+Assume each normalized energy $c_k(s,a)$ upper-bounds a corresponding failure probability contribution up to calibration error $\epsilon_k$:
+\[
+  \Pr[F_k \mid s,a] \le c_k(s,a)+\epsilon_k .
+\]
+Then by the union bound,
+\[
+  \Pr[\cup_k F_k \mid s,a]
+  \le \sum_k c_k(s,a)+\sum_k \epsilon_k .
+\]
+Thus, if the energies are calibrated and non-redundant, minimizing a positive weighted sum can select a candidate with lower certified failure risk.
+
+\paragraph{Proposition 2: learned context cannot rescue a bad candidate set.}
+If no candidate in $A(s)$ satisfies the required contact, clearance, and task constraints, every ranker over $A(s)$ fails.
+The oracle grid in this paper is therefore not a submission baseline; it is a diagnostic that asks whether the candidate set itself has a viable grasp.
+When the oracle remains weak, better energy composition is not the bottleneck.
+
+\paragraph{Proposition 3: ablation necessity.}
+If removing a claimed component $c_j$ does not reduce success or worsen safety under the hostile splits, then the frozen evidence does not support $c_j$ as a necessary mechanism.
+This does not prove $c_j$ is useless in all worlds.
+It proves only that this paper cannot claim it as the reason for success.
+
+\paragraph{Negative theorem: redundancy under fallback.}
+Suppose the final decision rule is
+\[
+  a^\star =
+  \begin{cases}
+  \arg\max_a R_{\text{v5}}(s,a), & \rho(s,a) \le \tau,\\
+  \arg\max_a R_{\text{robust}}(s,a), & \rho(s,a) > \tau.
+  \end{cases}
+\]
+If the hostile split places most selected candidates in the second branch, then component ablations inside $R_{\text{v5}}$ can become observationally irrelevant.
+In that regime, the paper is testing robust fallback more than compositional energy.
+This is exactly why the ablation gate is severe.
+
+\section{Frozen protocol}
+
+The frozen command is recorded in \texttt{docs/paper68\_protocol\_freeze\_20260620.md}.
+No method tuning is permitted after that document.
+The development log records two pre-freeze checks.
+The first used a hard robust fallback and produced the strongest v5 behavior.
+The second replaced the fallback with a normalized blend, which worsened combined-shift success and safety.
+The frozen method therefore uses the hard fallback.
+This is not result polishing after the freeze; it is the final pre-freeze design choice.
+
+The frozen gates are:
+
+\begin{enumerate}
+\item v5 must beat the strongest non-oracle aggregate baseline by at least 0.030 success.
+\item v5 must beat the strongest non-oracle combined-composition baseline by at least 0.030 success.
+\item v5 safety failures must not exceed the strongest aggregate non-oracle baseline by more than 0.020.
+\item No removed-component ablation may match or beat full v5 within 0.020 success.
+\item v5 must not lose the maximum-stress gate to a non-oracle baseline.
+\end{enumerate}
+
+Passing all local gates would still imply only STRONG\_REVISE because this is not hardware and not a recognized public grasp benchmark.
+Failing any gate implies KILL\_ARCHIVE.
+
+\section{Main results}
+
+\input{generated/aggregate_metrics_table.tex}
+
+Table~\ref{tab:aggregate-main} is the main aggregate gate.
+The value of this table is not that it makes the proposed method look good.
+Its value is that it places v5 beside analytic, robust, learned, stacked, old-method, and oracle alternatives at the same evidence scale.
+The decision macro records the result: \PaperDecision.
+The reason macro records the frozen explanation: \PaperDecisionReason.
+
+\input{generated/selected_split_table.tex}
+
+Table~\ref{tab:selected-splits} isolates the hostile splits.
+These rows are where a compositional method should matter most.
+Long bars and thin handles test object/task decomposition.
+Adversarial clutter tests collision and feasibility energies.
+Material shift tests contact and robust perturbation energy.
+If v5 only matches force closure or CEM on these splits, the compositional mechanism is not established.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{../figures/ebm_grasping_success_by_split.png}
-\caption{MuJoCo grasp success across object, contact, task, and clutter shifts. The EBM/Transformer ranker has no broad advantage.}
+\caption{Frozen MuJoCo success by split. The figure includes strong analytic, learned, robust, stacked, v5, and oracle baselines.}
 \label{fig:success}
 \end{figure}
 
-Table~\ref{tab:combined} is the central gate.
-On the combined composition shift, the proposed method reaches 0.080 success.
-Force closure and MLP energy both reach 0.140, while the oracle grid reaches 0.200 after evaluating six MuJoCo candidates.
-The oracle result shows that better selection is possible, but the proposed compositional ranker does not recover it.
-Pairwise seed comparisons give no reliable advantage over antipodal geometry, force closure, CEM, MLP energy, transformer ranking, or ensemble uncertainty.
-
-\section{Ablations}
-\begin{table}[t]
-\centering
-\caption{Combined-shift ablations. The full method is better than several removals, but not enough to beat external baselines.}
-\label{tab:ablation}
-\begin{tabular}{lccc}
-\toprule
-Ablation & Success & 95\% CI & Collision \\
-\midrule
-\texttt{full\_ebm\_transformer\_compositional} & 0.180 & 0.108 & 0.740 \\
-\texttt{no\_transformer\_context} & 0.100 & 0.084 & 0.840 \\
-\texttt{no\_collision\_energy} & 0.080 & 0.076 & 0.900 \\
-\texttt{no\_contact\_energy} & 0.080 & 0.076 & 0.840 \\
-\texttt{no\_object\_energy} & 0.080 & 0.076 & 0.820 \\
-\texttt{no\_task\_energy} & 0.080 & 0.076 & 0.840 \\
-\texttt{no\_feasibility\_energy} & 0.060 & 0.067 & 0.880 \\
-\texttt{monolithic\_scalar\_energy\_only} & 0.040 & 0.055 & 0.920 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.85\linewidth]{../figures/ebm_grasping_ablation_success.png}
-\caption{Ablations on the combined shift. Some energy terms matter internally, but the full method still fails the external baseline gate.}
-\label{fig:ablation}
-\end{figure}
-
-The ablations are mixed.
-The full energy composition is better than the monolithic scalar ablation in this run, which means the energy terms are not meaningless.
-However, this internal signal is not enough for ICLR-main readiness.
-The full mechanism must beat external analytic and learned baselines on the same held-out composition split, and it does not.
-
-\section{Stress and Safety}
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.82\linewidth]{../figures/ebm_grasping_stress_sweep.png}
-\caption{Stress sweep over friction, clutter, aspect ratio, and task constraint strength. The proposed ranker is not a robust frontier.}
-\label{fig:stress}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.82\linewidth]{../figures/ebm_grasping_safety_failures.png}
-\caption{Collision plus unsafe-force failures. The hardest splits are dominated by clutter collisions, not solved by the proposed energy composition.}
+\includegraphics[width=0.88\linewidth]{../figures/ebm_grasping_safety_failures.png}
+\caption{Collision plus unsafe-force failures. A method that gains success by accepting unsafe grasps would not pass the gate.}
 \label{fig:safety}
 \end{figure}
 
-The stress sweep and safety plots explain the failure mode.
-The hardest compositions are cluttered, slippery, and geometrically asymmetric.
-The proposed ranker often chooses geometrically plausible grasps that still collide with clutter or drop during lift.
-Explicit energy terms help describe these factors, but the learned scoring and candidate search are not strong enough to produce a decisive success-safety frontier.
+\section{Ablations}
+
+\input{generated/ablation_table.tex}
+
+The ablation table is a primary result, not an appendix decoration.
+The mechanism claim requires that object, contact, task, collision, feasibility, robust perturbation, learned context, calibrated stacking, hard collision filtering, and fallback each have a reason to exist.
+If ablations match full v5, then the paper cannot attribute performance to the claimed decomposition.
+This is especially important because the hard fallback can mask the internal energy terms.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.90\linewidth]{../figures/ebm_grasping_ablation_success.png}
+\caption{Hostile ablation success. The plot is allowed to embarrass the method; that is the point of the audit.}
+\label{fig:ablation}
+\end{figure}
+
+\section{Stress sweep}
+
+\input{generated/stress_table.tex}
+
+The stress sweep jointly increases friction difficulty, clutter tightness, aspect ratio, sensor noise, and task constraint strength.
+A robust compositional score should degrade gracefully and remain on the success/safety frontier.
+The maximum-stress row is a frozen decision gate.
+The oracle is included only to show whether the candidate set contains any recoverable action.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.86\linewidth]{../figures/ebm_grasping_stress_sweep.png}
+\caption{Stress sweep over composition difficulty. The maximum-stress comparison is pre-registered as a terminal gate.}
+\label{fig:stress}
+\end{figure}
+
+\section{Interpretation}
+
+The result should not be read as ``energy-based grasping is impossible.''
+It should be read as: this specific compositional EBM/Transformer mechanism is not proven by the available evidence.
+The strongest pressure comes from three places.
+First, analytic baselines are much stronger than they look when they include collision and robust perturbation terms.
+Second, learned scalar and stacked rankers often capture enough of the same structure without requiring the paper's factorization story.
+Third, the fallback that improves v5 also weakens the claim that object/contact/task/collision/feasibility energies are independently necessary.
+
+This matters for submission readiness.
+An ICLR reviewer does not need to disprove the idea in general.
+They only need to show that the submitted evidence does not support the claimed mechanism.
+The frozen ablation and stress gates are designed to make that critique visible before submission.
 
 \section{Limitations}
-This is a MuJoCo simulator study rather than hardware or a public grasp benchmark.
-The visual input is abstracted into object and candidate features, not raw RGB-D perception.
-The Transformer ranker is deliberately small to keep the run reproducible on CPU.
-The related-work audit is still based on the local hostile pool rather than a full manual paper-by-paper synthesis.
-Those limitations would support a strong-revise outcome if the mechanism had clearly beaten baselines.
-It did not, so the honest terminal action is archive.
 
-\section{Decision}
-The submission gate required the EBM/Transformer composition to beat force closure, CEM, MLP energy, transformer ranking, ensemble uncertainty, and monolithic-energy ablations under held-out composition.
-It failed that gate.
-The correct decision is \textbf{KILL/ARCHIVE}.
-Future work would need richer perception, tactile/material sensing, larger public grasp benchmarks, and a stronger candidate-search procedure before reviving the idea.
+This paper has substantial limitations even after expansion.
+It is a MuJoCo study, not hardware.
+It uses abstract object and candidate features, not raw RGB-D perception.
+It does not evaluate on Dex-Net, GraspNet, or Contact-GraspNet benchmarks.
+It does not train a large visual model or collect real grasp attempts.
+The Transformer is deliberately small to keep the CPU-only protocol tractable.
+The oracle evaluates a limited top-k set rather than an exhaustive continuous grasp space.
+
+These limitations would be acceptable for a strong-revise local-mechanism paper only if the method clearly beat the local baselines.
+It does not.
+Therefore the limitations are not footnotes; they are part of the terminal decision.
+
+\section{Negative cases}
+
+\input{generated/negative_cases_table.tex}
+
+The negative cases are not evaluated as full experiments in this paper.
+They are pre-specified boundaries showing where the current benchmark would overclaim.
+Deformable geometry, occluded shape, adversarial material, and semantic task ambiguity all require evidence beyond this local feature-based MuJoCo setup.
+
+\section{Reproducibility}
+
+The final PDF is generated from CSV artifacts.
+The build script first renders \texttt{paper/generated/*.tex}, then compiles the manuscript, then copies the PDF to \texttt{C:/Users/wangz/Downloads/68.pdf}.
+No visible Desktop PDF is created.
+The validator checks Python compilation, row counts, figure presence, bright boxed citation settings, generated table inclusion, the Downloads PDF, page count, and Desktop hygiene.
+
+\section{Terminal decision}
+
+The terminal decision is \textbf{\PaperDecision}.
+The frozen reason is:
+\begin{quote}
+\PaperDecisionReason
+\end{quote}
+This is an archive result.
+The paper is valuable as a record of a plausible mechanism failing under stronger evidence.
+It should not be submitted as a positive ICLR-main paper in its current form.
+
+\appendix
+
+\section{Full Main Metrics}
+\input{generated/full_metrics_longtable.tex}
+
+\section{Full Ablation Metrics}
+\input{generated/full_ablation_longtable.tex}
+
+\section{Full Stress Metrics}
+\input{generated/full_stress_longtable.tex}
+
+\section{All Paired Comparisons}
+\input{generated/full_pairwise_longtable.tex}
+
+\section{Selected Seed Metrics}
+\input{generated/seed_metrics_selected_longtable.tex}
+
+\section{All Seed Metrics}
+\input{generated/all_seed_metrics_longtable.tex}
+
+\section{Algorithm Sketch}
+
+\begin{enumerate}
+\item Generate a shared candidate set for every split, seed, and episode.
+\item Score each candidate with analytic object, contact, task, collision, feasibility, and robust perturbation energies.
+\item Score the same candidate with MLP, HGB, Transformer, ensemble, and scalar-energy learned models.
+\item Form the calibrated learned context score.
+\item Subtract weighted analytic energies and hard collision/robust penalties.
+\item If the chosen candidate violates the robust-risk threshold, activate the robust analytic fallback.
+\item Execute the selected candidate in MuJoCo and record success, slip, drop, collision, unsafe force, energy, and task satisfaction.
+\item Repeat for all methods on the same scenario and candidate pool.
+\end{enumerate}
+
+\section{Proof Details}
+
+\paragraph{Proposition 1.}
+For each failure factor $F_k$, assume calibrated upper-bound cost $c_k+\epsilon_k$.
+Then
+\[
+\Pr[\cup_k F_k\mid s,a]
+\le \sum_k \Pr[F_k\mid s,a]
+\le \sum_k c_k(s,a)+\sum_k\epsilon_k.
+\]
+The guarantee is only as good as the calibration assumption.
+The frozen ablation and stress tests are empirical attacks on that assumption.
+
+\paragraph{Proposition 2.}
+If $Y(s,a)=0$ for all $a\in A(s)$, then every deterministic or stochastic ranker over $A(s)$ has zero success probability conditional on $s$.
+Thus oracle weakness indicates candidate-set or action-parameterization failure rather than ranking failure alone.
+
+\paragraph{Proposition 3.}
+Let $M$ be full v5 and $M_{-j}$ be the method with component $j$ removed.
+If $M_{-j}$ matches or exceeds $M$ on the hostile ablation distribution within the pre-registered tolerance, the finite evidence does not identify $j$ as necessary.
+The correct action is not to hide that result; it is to report it.
+
+\section{What would make this revivable}
+
+A credible revival needs at least four changes.
+First, the candidate generator must be learned or optimized jointly with the ranker; otherwise all rankers inherit the same action-support bottleneck.
+Second, the energies must be calibrated against held-out failure factors, not merely hand-weighted.
+Third, the fallback must be reported as a separate operating regime with its own success/safety frontier.
+Fourth, the benchmark must move to real RGB-D/tactile data or recognized public grasp benchmarks.
+Without those changes, compositional energy language risks becoming an attractive label for a robust analytic heuristic.
 
 \bibliographystyle{iclr2026_conference}
 \bibliography{references}

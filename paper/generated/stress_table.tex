@@ -1,0 +1,20 @@
+\begin{table}[t]
+\centering
+\caption{Stress sweep success rates. Stress jointly changes friction, clutter clearance, aspect ratio, sensor noise, and task constraint strength.}
+\label{tab:stress}
+\scriptsize
+\begin{tabular}{lrrrrrr}
+\toprule
+Method & 0.0 & 0.2 & 0.4 & 0.6 & 0.8 & 1.0 \\
+\midrule
+CEM analytic & 0.912 & 0.900 & 0.812 & 0.138 & 0.037 & 0.000 \\
+Collision-aware FC & 0.875 & 0.900 & 0.800 & 0.188 & 0.037 & 0.000 \\
+Robust perturb. & 0.825 & 0.825 & 0.787 & 0.175 & 0.037 & 0.000 \\
+MLP energy & 1.000 & 1.000 & 0.900 & 0.100 & 0.000 & 0.000 \\
+HGB energy & 1.000 & 1.000 & 1.000 & 0.138 & 0.062 & 0.000 \\
+Calibrated stack & 1.000 & 1.000 & 0.975 & 0.200 & 0.025 & 0.000 \\
+EBM v5 & 0.988 & 1.000 & 0.887 & 0.200 & 0.050 & 0.000 \\
+Oracle grid & 1.000 & 1.000 & 1.000 & 0.650 & 0.212 & 0.025 \\
+\bottomrule
+\end{tabular}
+\end{table}
